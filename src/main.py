@@ -1,5 +1,3 @@
-from random import Random
-
 import pygame
 
 from agent import Agent, RandomAgent
@@ -16,14 +14,14 @@ def main() -> None:
 
     game = TikTakToe()
     agents = {
-        'X': Agent(game, 'X'),
-        'O': RandomAgent(game, 'O'),
+        'X': Agent(game, marker='X'),
+        'O': Agent(game, marker='O'),
     }
     turn: str = 'X'
     winner: str | None = None
     draw: bool = False
     running: bool = True
-    move_delay = 500
+    move_delay = 100
 
     while running:
         for event in pygame.event.get():
@@ -35,6 +33,7 @@ def main() -> None:
 
         if not game.is_game_over() and game.possible_moves():
             agents[turn].step()
+            print(game.__str__())
 
             if game.check_winner(turn):
                 winner = turn

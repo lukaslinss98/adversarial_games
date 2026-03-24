@@ -1,11 +1,12 @@
 import random
+from typing import Callable
 
 from algorithms.minimax import minimax
 from environments.tiktaktoe import TikTakToe
 
 
 class Agent:
-    def __init__(self, env: TikTakToe, marker='X') -> None:
+    def __init__(self, env: TikTakToe, marker: str) -> None:
         self.env = env
         self.marker = marker
 
@@ -18,9 +19,13 @@ class Agent:
         score_by_move = {}
         for move in self.env.possible_moves():
             env.move(*move, self.marker)
-            score = minimax(env, player=self.marker, oponent='O', maximize=True)
+            score = minimax(
+                env, player=self.marker, current=env.get_opponent(self.marker)
+            )
             score_by_move[move] = score
             env.clear(*move)
+
+        print(score_by_move)
 
         return max(score_by_move, key=score_by_move.get)
 

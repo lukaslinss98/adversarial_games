@@ -46,6 +46,11 @@ class TikTakToe:
             self.check_winner(marker) for marker in ('X', 'O')
         )
 
+    def get_opponent(self, player):
+        if player == 'X':
+            return 'O'
+        return 'X'
+
     def is_game_over(self) -> bool:
         return self.check_winner('X') or self.check_winner('O') or self.is_draw()
 
