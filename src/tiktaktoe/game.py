@@ -2,7 +2,7 @@ import pickle
 
 import pygame
 
-from tiktaktoe.agent import DefaultAgent, QLearningAgent
+from tiktaktoe.agent import MinimaxAgent, QLearningAgent
 from tiktaktoe.environment import TikTakToe
 from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
@@ -19,7 +19,7 @@ def tiktaktoe():
     game = TikTakToe()
     agents = {
         'X': QLearningAgent(game, marker='X', q_table=q_table),
-        'O': QLearningAgent(game, marker='O', q_table=q_table),
+        'O': MinimaxAgent(game, marker='O', max_depth=None),
     }
     winner: str | None = None
     winning_line: list[tuple[int, int]] | None = None
@@ -43,7 +43,9 @@ def tiktaktoe():
         panel_font = pygame.font.SysFont('courier', 18)
         total = sum(a.nodes_visited for a in agents.values())
         status = (
-            f'Winner: {winner}' if winner else ('Draw!' if draw else f'Turn:  {game.current_player}')
+            f'Winner: {winner}'
+            if winner
+            else ('Draw!' if draw else f'Turn:  {game.current_player}')
         )
         panel_lines = [
             'STATS',

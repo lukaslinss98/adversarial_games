@@ -1,9 +1,29 @@
 import random
 
+import numpy as np
+
 from connectfour.minimax import minimax
 
 
-class Agent:
+class QLearningAgent:
+    def __init__(self, env, marker, q_table: dict):
+        self.env = env
+        self.marker = marker
+        self.q_vals = q_table
+        self.nodes_visited = 0
+
+    def step(self) -> None:
+        move = self._best_move()
+        self.env.move(move, self.marker)
+
+    def _best_move(self):
+        state = self.env.state_key()
+        actions = self.env.actions()
+        max_arg = np.argmax([self.q_vals.get((state, action), 0) for action in actions])
+        return actions[max_arg]
+
+
+class MinimaxAgent:
     def __init__(self, env, marker, max_depth):
         self.env = env
         self.marker = marker
@@ -14,22 +34,21 @@ class Agent:
         self.env.move(move, self.marker)
 
     def step(self) -> None:
-        move = self._best_move()
-        self.env.move(move, self.marker)
+        self.env.move(self._best_move(), self.marker)
 
     def _best_move(self) -> int:
         env = self.env.copy()
         score_by_move = {}
-        for move in self.env.possible_moves():
-            env.move(*move, self.marker)
+        for move in self.env.actions():
+            env.move(move, self.marker)
             result = minimax(
                 env,
                 player=self.marker,
                 current=env.get_opponent(self.marker),
                 max_depth=self.max_depth,
             )
-            score_by_move[move[0]] = result.score
-            env.clear(*move)
+            score_by_move[move] = result.score
+            env.clear(move)
             self.nodes_visited += result.nodes_visited
 
         return max(score_by_move, key=lambda move: score_by_move[move])
@@ -39,12 +58,13 @@ class DefaultAgent:
     def __init__(self, env, marker):
         self.env = env
         self.marker = marker
+        self.nodes_visited = 0
 
     def step(self) -> None:
         move = self._best_move()
-        self.env.move(*move, self.marker)
+        self.env.move(move, self.marker)
 
-    def _best_move(self) -> list[int]:
+    def _best_move(self) -> int:
         winning_moves = self.env.winning_moves(self.marker)
         if winning_moves:
             return random.choice(winning_moves)
@@ -55,4 +75,14 @@ class DefaultAgent:
         if losing_moves:
             return random.choice(losing_moves)
 
-        return random.choice(self.env.possible_moves())
+        return random.choice(self.env.actions())
+
+
+class RandomAgent:
+    def __init__(self, env, marker):
+        self.env = env
+        self.marker = marker
+        self.nodes_visited = 0
+
+    def step(self) -> None:
+        self.env.move(random.choice(self.env.actions()), self.marker)

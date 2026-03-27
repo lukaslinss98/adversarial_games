@@ -5,26 +5,26 @@ import numpy as np
 from tiktaktoe.minimax import minimax_alpha_beta
 
 
-class Agent:
-    def __init__(self, env, marker):
+class MinimaxAgent:
+    def __init__(self, env, marker, max_depth):
         self.env = env
         self.marker = marker
         self.nodes_visited = 0
+        self.max_depth = max_depth
 
     def step(self) -> None:
-        move = self._best_move()
-        self.env.move(*move, self.marker)
+        self.env.move(*self._best_move(), self.marker)
 
     def _best_move(self) -> tuple[int, int]:
         env = self.env.copy()
         score_by_move = {}
-        for move in self.env.possible_moves():
+        for move in self.env.actions():
             env.move(*move, self.marker)
             result = minimax_alpha_beta(
                 env,
                 player=self.marker,
                 current=env.get_opponent(self.marker),
-                max_depth=8,
+                max_depth=self.max_depth,
             )
             score_by_move[move] = result.score
             env.clear(*move)
@@ -41,14 +41,23 @@ class QLearningAgent:
         self.nodes_visited = 0
 
     def step(self) -> None:
-        move = self._best_move()
-        self.env.move(*move, self.marker)
+        self.env.move(*self._best_move(), self.marker)
 
     def _best_move(self):
         state = self.env.state_key()
         actions = self.env.actions()
         max_arg = np.argmax([self.q_vals.get((state, action), 0) for action in actions])
         return actions[max_arg]
+
+
+class RandomAgent:
+    def __init__(self, env, marker):
+        self.env = env
+        self.marker = marker
+        self.nodes_visited = 0
+
+    def step(self) -> None:
+        self.env.move(*random.choice(self.env.actions()), self.marker)
 
 
 class DefaultAgent:
@@ -58,8 +67,8 @@ class DefaultAgent:
         self.nodes_visited = 0
 
     def step(self) -> None:
-        move = self._best_move()
-        self.env.move(*move, self.marker)
+        best_move = self._best_move()
+        self.env.move(*best_move, self.marker)
 
     def _best_move(self) -> tuple[int, int]:
         winning_moves = self.env.winning_moves(self.marker)

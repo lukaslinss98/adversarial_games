@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-from tiktaktoe.agent import Agent, DefaultAgent
+from tiktaktoe.agent import DefaultAgent, MinimaxAgent
 from tiktaktoe.environment import TikTakToe
 
 
@@ -43,12 +43,12 @@ def train_tiktaktoe(episodes: int, save: bool = False):
     for ep in range(EPISODES + 1):
         EPSILON = max(MIN_EPSILON, EPSILON * EPSILON_DECAY)
         agent_marker = random.choice(makers)
-        agent = Agent(env, agent_marker)
+        agent = agent_marker
         opponent = DefaultAgent(env, marker=env.get_opponent(agent_marker))
 
         print(f'\r{ep} / {EPISODES} | {EPSILON=}', end='', flush=True)
 
-        if agent.marker == 'O' and not env.is_game_over():
+        if agent == 'O' and not env.is_game_over():
             opponent.step()
 
         while not env.is_game_over():
@@ -57,12 +57,12 @@ def train_tiktaktoe(episodes: int, save: bool = False):
             action = get_action(state, actions, q_vals, EPSILON)
             current_q = q_vals.get((state, action), 0)
 
-            env.move(*action, agent.marker)
+            env.move(*action, agent)
 
             if not env.is_game_over():
                 opponent.step()
 
-            reward = get_reward(env, agent.marker)
+            reward = get_reward(env, agent)
             new_state = env.state_key()
             new_actions = env.actions()
             next_max_q = max(

@@ -3,12 +3,11 @@ import random
 
 import numpy as np
 
+from connectfour.agent import DefaultAgent
 from connectfour.environment import ConnectFour, Token
-from tiktaktoe.agent import Agent, DefaultAgent
-from tiktaktoe.environment import TikTakToe
 
 
-def get_reward(env, player: str):
+def get_reward(env, player: Token):
     if env.is_winner(player):
         return 1
 
@@ -21,7 +20,7 @@ def get_reward(env, player: str):
     return 0
 
 
-def get_action(state, actions, q_vals, eps):
+def get_action(state, actions, q_vals, eps) -> int:
     if random.random() > eps:
         argmax = np.argmax([q_vals.get((state, action), 0) for action in actions])
         return actions[argmax]
@@ -43,13 +42,12 @@ def train_connectfour(episodes: int, save: bool = False):
     makers = [Token.BLUE, Token.RED]
     for ep in range(EPISODES + 1):
         EPSILON = max(MIN_EPSILON, EPSILON * EPSILON_DECAY)
-        agent_marker = random.choice(makers)
-        agent = Agent(env, agent_marker)
-        opponent = DefaultAgent(env, marker=env.get_opponent(agent_marker))
+        agent = random.choice(makers)
+        opponent = DefaultAgent(env, marker=env.get_opponent(agent))
 
         print(f'\r{ep} / {EPISODES} | {EPSILON=}', end='', flush=True)
 
-        if agent.marker == 'O' and not env.is_game_over():
+        if agent == Token.BLUE and not env.is_game_over():
             opponent.step()
 
         while not env.is_game_over():
@@ -58,12 +56,12 @@ def train_connectfour(episodes: int, save: bool = False):
             action = get_action(state, actions, q_vals, EPSILON)
             current_q = q_vals.get((state, action), 0)
 
-            env.move(*action, agent.marker)
+            env.move(action, agent)
 
             if not env.is_game_over():
                 opponent.step()
 
-            reward = get_reward(env, agent.marker)
+            reward = get_reward(env, agent)
             new_state = env.state_key()
             new_actions = env.actions()
             next_max_q = max(
@@ -80,6 +78,6 @@ def train_connectfour(episodes: int, save: bool = False):
     print(len(q_vals))
 
     if save:
-        filename = 'q_table.pkl'
+        filename = 'q_table_connectfour.pkl'
         with open(filename, 'wb') as f:
             pickle.dump(q_vals, f)

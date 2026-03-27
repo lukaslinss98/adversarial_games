@@ -22,10 +22,10 @@ def minimax(
 
     nodes_visited = 0
     opponent = state.get_opponent(player)
-    if state.check_winner(player):
+    if state.is_winner(player):
         return MinimaxResult(10 - depth - 1, 1)
 
-    if state.check_winner(opponent):
+    if state.is_winner(opponent):
         return MinimaxResult(-10 + depth - 1, 1)
 
     if state.is_draw():
@@ -34,8 +34,8 @@ def minimax(
     maximize = player == current
 
     if maximize:
-        for move in state.possible_moves():
-            state.move(*move, player=current)
+        for move in state.actions():
+            state.move(move, player=current)
             result = minimax(
                 state,
                 player,
@@ -48,15 +48,15 @@ def minimax(
             )
             nodes_visited += result.nodes_visited + 1
             alpha = max(alpha, result.score)
-            state.clear(*move)
+            state.clear(move)
             if alpha >= beta and pruning:
                 break
 
         return MinimaxResult(alpha, nodes_visited)
 
     else:
-        for move in state.possible_moves():
-            state.move(*move, player=current)
+        for move in state.actions():
+            state.move(move, player=current)
             result = minimax(
                 state,
                 player,
@@ -69,7 +69,7 @@ def minimax(
             )
             nodes_visited += result.nodes_visited + 1
             beta = min(beta, result.score)
-            state.clear(*move)
+            state.clear(move)
             if alpha >= beta:
                 break
 

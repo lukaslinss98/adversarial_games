@@ -9,10 +9,10 @@ class MinimaxResult:
 
 def minimax(state, player: str, current: str, depth=0):
     opponent = state.get_opponent(player)
-    if state.check_winner(player):
+    if state.is_winner(player):
         return 10 - depth - 1
 
-    if state.check_winner(opponent):
+    if state.is_winner(opponent):
         return -10 + depth - 1
 
     if state.is_draw():
@@ -22,7 +22,7 @@ def minimax(state, player: str, current: str, depth=0):
 
     if maximize:
         scores = []
-        for move in state.possible_moves():
+        for move in state.actions():
             state.move(*move, player=current)
             score = minimax(state, player, state.get_opponent(current), depth=depth + 1)
             scores.append(score)
@@ -32,7 +32,7 @@ def minimax(state, player: str, current: str, depth=0):
 
     else:
         scores = []
-        for move in state.possible_moves():
+        for move in state.actions():
             state.move(*move, player=current)
             score = minimax(state, player, state.get_opponent(current), depth=depth + 1)
             scores.append(score)
@@ -56,10 +56,10 @@ def minimax_alpha_beta(
 
     nodes_visited = 0
     opponent = state.get_opponent(player)
-    if state.check_winner(player):
+    if state.is_winner(player):
         return MinimaxResult(10 - depth - 1, 1)
 
-    if state.check_winner(opponent):
+    if state.is_winner(opponent):
         return MinimaxResult(-10 + depth - 1, 1)
 
     if state.is_draw():
@@ -68,7 +68,7 @@ def minimax_alpha_beta(
     maximize = player == current
 
     if maximize:
-        for move in state.possible_moves():
+        for move in state.actions():
             state.move(*move, player=current)
             result = minimax_alpha_beta(
                 state,
@@ -89,7 +89,7 @@ def minimax_alpha_beta(
         return MinimaxResult(alpha, nodes_visited)
 
     else:
-        for move in state.possible_moves():
+        for move in state.actions():
             state.move(*move, player=current)
             result = minimax_alpha_beta(
                 state,

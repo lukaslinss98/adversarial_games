@@ -1,7 +1,9 @@
 import argparse
 
+from connectfour.evaluate import evaluate_connectfour
 from connectfour.game import connect_four
 from connectfour.q_learning_training import train_connectfour
+from tiktaktoe.evaluate import evaluate_tiktaktoe
 from tiktaktoe.game import tiktaktoe
 from tiktaktoe.q_learning_training import train_tiktaktoe
 
@@ -41,6 +43,18 @@ if __name__ == '__main__':
         help='Save the q-table after training',
     )
 
+    eval_parser = subparsers.add_parser('eval', help='Evaluate two agents headlessly')
+    eval_parser.add_argument(
+        '--game',
+        type=str,
+        required=True,
+        choices=VALID_GAMES,
+        help=f'Game to evaluate. Valid options: {", ".join(VALID_GAMES)}',
+    )
+    eval_parser.add_argument('--runs', type=int, default=100, help='Number of games (default: 100)')
+    eval_parser.add_argument('--agent1', type=str, required=True, help='Agent 1 (minimax/ql/default/random)')
+    eval_parser.add_argument('--agent2', type=str, required=True, help='Agent 2 (minimax/ql/default/random)')
+
     args = parser.parse_args()
 
     if args.mode == 'play':
@@ -53,3 +67,8 @@ if __name__ == '__main__':
             train_tiktaktoe(episodes=args.episodes, save=args.save)
         if args.game == 'connectfour':
             train_connectfour(episodes=args.episodes, save=args.save)
+    elif args.mode == 'eval':
+        if args.game == 'tiktaktoe':
+            evaluate_tiktaktoe(args.runs, args.agent1, args.agent2)
+        elif args.game == 'connectfour':
+            evaluate_connectfour(args.runs, args.agent1, args.agent2)

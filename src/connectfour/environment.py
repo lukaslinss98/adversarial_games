@@ -1,7 +1,5 @@
 from enum import Enum
 
-import pygame
-
 from util import (BLUE, BORDER, CONNECT_FOUR_CELL_SIZE, CONNECT_FOUR_COLS,
                   CONNECT_FOUR_ROWS, RED, WHITE)
 
@@ -24,11 +22,13 @@ class ConnectFour:
         self.state: list[list[Token | None]] = [
             [None] * COLUMNS for _ in range(MAX_CAP)
         ]
+        self.current_player: Token = Token.RED
 
     def move(self, col: int, player: Token):
         for row in range(MAX_CAP - 1, -1, -1):
             if self.state[row][col] is None:
                 self.state[row][col] = player
+                self.current_player = self.get_opponent(player)
                 return
         raise Exception(f'Column {col} is full')
 
@@ -36,14 +36,25 @@ class ConnectFour:
         for row in range(MAX_CAP):
             if self.state[row][col] is not None:
                 self.state[row][col] = None
+                self.current_player = self.get_opponent(self.current_player)
                 return
 
+    def reset(self):
+        self.state = [[None] * COLUMNS for _ in range(MAX_CAP)]
+        self.current_player = Token.RED
+
     def actions(self):
-        return [[col] for col in range(COLUMNS) if self.state[0][col] is None]
+        return [col for col in range(COLUMNS) if self.state[0][col] is None]
+
+    def state_key(self):
+        return tuple(cell for row in self.state for cell in row) + (
+            self.current_player,
+        )
 
     def copy(self):
         new = ConnectFour()
         new.state = [row[:] for row in self.state]
+        new.current_player = self.current_player
         return new
 
     def _get_cell(self, row: int, col: int) -> Token | None:
@@ -51,27 +62,23 @@ class ConnectFour:
             return None
         return self.state[row][col]
 
-    def winning_moves(self, player: Token) -> list[list[int]]:
+    def winning_moves(self, player: Token) -> list[int]:
         wins = []
-        for move in self.actions():
-            col = move[0]
+        for col in self.actions():
             self.move(col, player)
-            if self.check_winner(player):
-                wins.append([col])
+            if self.is_winner(player):
+                wins.append(col)
             self.clear(col)
         return wins
 
     def is_game_over(self) -> bool:
-        return (
-            self.check_winner(Token.RED)
-            or self.check_winner(Token.BLUE)
-            or self.is_draw()
-        )
+        return self.is_winner(Token.RED) or self.is_winner(Token.BLUE) or self.is_draw()
 
     def is_draw(self) -> bool:
         return len(self.actions()) == 0
 
     def draw(self, screen, winning_line=None):
+        import pygame
         for col in range(CONNECT_FOUR_COLS + 1):
             pygame.draw.line(
                 screen,
@@ -133,7 +140,7 @@ class ConnectFour:
 
         return windows
 
-    def check_winner(self, token: Token) -> bool:
+    def is_winner(self, token: Token) -> bool:
         directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
         for row in range(CONNECT_FOUR_ROWS):
             for col in range(CONNECT_FOUR_COLS):

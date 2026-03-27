@@ -1,6 +1,8 @@
+import pickle
+
 import pygame
 
-from connectfour.agent import Agent as ConnectFourAgent
+from connectfour.agent import DefaultAgent, QLearningAgent
 from connectfour.environment import ConnectFour, Token
 from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
@@ -12,14 +14,14 @@ def connect_four():
     )
     pygame.display.set_caption('Connect Four')
 
+    with open('q_table_connectfour.pkl', 'rb') as f:
+        q_table = pickle.load(f)
+
     game = ConnectFour()
-    RED = Token.RED
-    BLUE = Token.BLUE
     agents = {
-        BLUE: ConnectFourAgent(game, marker=BLUE, max_depth=10),
-        RED: ConnectFourAgent(game, marker=RED, max_depth=10),
+        Token.BLUE: DefaultAgent(game, marker=Token.BLUE),
+        Token.RED: QLearningAgent(game, marker=Token.RED, q_table=q_table),
     }
-    turn = BLUE
     winner: Token | None = None
     draw = False
     running = True
@@ -41,15 +43,17 @@ def connect_four():
         panel_font = pygame.font.SysFont('courier', 18)
         total = sum(a.nodes_visited for a in agents.values())
         status = (
-            f'Winner: {winner}' if winner else ('Draw!' if draw else f'Turn:  {turn}')
+            f'Winner: {winner}'
+            if winner
+            else ('Draw!' if draw else f'Turn:  {game.current_player}')
         )
         panel_lines = [
             'STATS',
             '',
             status,
             '',
-            f'red:   {agents[RED].nodes_visited:,}',
-            f'blue:  {agents[BLUE].nodes_visited:,}',
+            f'red:   {agents[Token.RED].nodes_visited:,}',
+            f'blue:  {agents[Token.BLUE].nodes_visited:,}',
             f'Total: {total:,}',
         ]
         for i, line in enumerate(panel_lines):
@@ -58,14 +62,13 @@ def connect_four():
             screen.blit(surf, (panel_x + 15, BORDER + i * 28))
 
         if not game.is_game_over() and game.actions():
-            agents[turn].step()
+            current = game.current_player
+            agents[current].step()
 
-            if game.check_winner(turn):
-                winner = turn
+            if game.is_winner(current):
+                winner = current
             elif game.is_draw():
                 draw = True
-            else:
-                turn = BLUE if turn == RED else RED
 
         if (winner or draw) and not game_over_printed:
             print(f'States explored: {sum(a.nodes_visited for a in agents.values()):,}')

@@ -1,5 +1,3 @@
-import pygame
-
 from util import BORDER, CELL_SIZE, GREEN, WHITE, WINDOW_SIZE, get_font
 
 WIN_LINES = [
@@ -69,6 +67,7 @@ class TikTakToe:
         return moves
 
     def draw(self, screen, winning_line: list[tuple[int, int]] | None = None) -> None:
+        import pygame
         for i in range(1, 3):
             pygame.draw.line(
                 screen,
