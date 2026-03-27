@@ -1,3 +1,5 @@
+import numpy as np
+
 from util import BORDER, CELL_SIZE, GREEN, WHITE, WINDOW_SIZE, get_font
 
 WIN_LINES = [
@@ -68,6 +70,7 @@ class TikTakToe:
 
     def draw(self, screen, winning_line: list[tuple[int, int]] | None = None) -> None:
         import pygame
+
         for i in range(1, 3):
             pygame.draw.line(
                 screen,
@@ -112,6 +115,18 @@ class TikTakToe:
         return tuple(cell for row in self.state for cell in row) + (
             self.current_player,
         )
+
+    def state_one_hot(self):
+        one_hot_vec = [1, 0] if self.current_player == 'X' else [0, 1]
+        for row in self.state:
+            for cell in row:
+                if cell == 'X':
+                    one_hot_vec.extend([1, 0, 0])
+                elif cell == 'O':
+                    one_hot_vec.extend([0, 1, 0])
+                else:
+                    one_hot_vec.extend([0, 0, 1])
+        return np.array(one_hot_vec)
 
     def __str__(self) -> str:
         return ''.join(f'{row}\n' for row in self.state)

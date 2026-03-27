@@ -5,6 +5,7 @@ from connectfour.game import connect_four
 from connectfour.q_learning_training import train_connectfour
 from tiktaktoe.evaluate import evaluate_tiktaktoe
 from tiktaktoe.game import tiktaktoe
+from tiktaktoe.dqn_training import train_tiktaktoe_dqn
 from tiktaktoe.q_learning_training import train_tiktaktoe
 
 VALID_GAMES = ('tiktaktoe', 'connectfour')
@@ -42,6 +43,13 @@ if __name__ == '__main__':
         action='store_true',
         help='Save the q-table after training',
     )
+    train_parser.add_argument(
+        '--algo',
+        type=str,
+        default='ql',
+        choices=('ql', 'dqn'),
+        help='Training algorithm: ql or dqn (default: ql)',
+    )
 
     eval_parser = subparsers.add_parser('eval', help='Evaluate two agents headlessly')
     eval_parser.add_argument(
@@ -64,7 +72,10 @@ if __name__ == '__main__':
             connect_four()
     elif args.mode == 'train':
         if args.game == 'tiktaktoe':
-            train_tiktaktoe(episodes=args.episodes, save=args.save)
+            if args.algo == 'dqn':
+                train_tiktaktoe_dqn(episodes=args.episodes, save=args.save)
+            else:
+                train_tiktaktoe(episodes=args.episodes, save=args.save)
         if args.game == 'connectfour':
             train_connectfour(episodes=args.episodes, save=args.save)
     elif args.mode == 'eval':

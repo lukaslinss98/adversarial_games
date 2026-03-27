@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 
-from tiktaktoe.agent import DefaultAgent, MinimaxAgent
+from tiktaktoe.agent import DefaultAgent
 from tiktaktoe.environment import TikTakToe
 
 
