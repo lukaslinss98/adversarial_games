@@ -17,12 +17,15 @@ WIN_LINES = [
 class TikTakToe:
     def __init__(self):
         self.state: list[list[str | None]] = [[None, None, None] for _ in range(3)]
+        self.current_player: str = 'X'
 
     def move(self, x, y, player):
         self.state[x][y] = player
+        self.current_player = self.get_opponent(player)
 
     def clear(self, x: int, y: int):
         self.state[x][y] = None
+        self.current_player = self.get_opponent(self.current_player)
 
     def actions(self) -> list[tuple[int, int]]:
         moves = []
@@ -98,13 +101,18 @@ class TikTakToe:
 
     def reset(self):
         self.state = [[None, None, None] for _ in range(3)]
+        self.current_player = 'X'
 
     def copy(self):
         new_game = TikTakToe()
         new_game.state = [row[:] for row in self.state]
+        new_game.current_player = self.current_player
+        return new_game
 
     def state_key(self):
-        return tuple(cell for row in self.state for cell in row)
+        return tuple(cell for row in self.state for cell in row) + (
+            self.current_player,
+        )
 
     def __str__(self) -> str:
         return ''.join(f'{row}\n' for row in self.state)

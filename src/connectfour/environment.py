@@ -38,7 +38,7 @@ class ConnectFour:
                 self.state[row][col] = None
                 return
 
-    def possible_moves(self):
+    def actions(self):
         return [[col] for col in range(COLUMNS) if self.state[0][col] is None]
 
     def copy(self):
@@ -53,7 +53,7 @@ class ConnectFour:
 
     def winning_moves(self, player: Token) -> list[list[int]]:
         wins = []
-        for move in self.possible_moves():
+        for move in self.actions():
             col = move[0]
             self.move(col, player)
             if self.check_winner(player):
@@ -69,7 +69,7 @@ class ConnectFour:
         )
 
     def is_draw(self) -> bool:
-        return len(self.possible_moves()) == 0
+        return len(self.actions()) == 0
 
     def draw(self, screen, winning_line=None):
         for col in range(CONNECT_FOUR_COLS + 1):

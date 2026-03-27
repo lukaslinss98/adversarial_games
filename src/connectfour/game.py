@@ -57,7 +57,7 @@ def connect_four():
             surf = panel_font.render(line, True, color)
             screen.blit(surf, (panel_x + 15, BORDER + i * 28))
 
-        if not game.is_game_over() and game.possible_moves():
+        if not game.is_game_over() and game.actions():
             agents[turn].step()
 
             if game.check_winner(turn):

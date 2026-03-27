@@ -1,6 +1,7 @@
 import argparse
 
 from connectfour.game import connect_four
+from connectfour.q_learning_training import train_connectfour
 from tiktaktoe.game import tiktaktoe
 from tiktaktoe.q_learning_training import train_tiktaktoe
 
@@ -50,3 +51,5 @@ if __name__ == '__main__':
     elif args.mode == 'train':
         if args.game == 'tiktaktoe':
             train_tiktaktoe(episodes=args.episodes, save=args.save)
+        if args.game == 'connectfour':
+            train_connectfour(episodes=args.episodes, save=args.save)

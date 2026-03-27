@@ -19,9 +19,8 @@ def tiktaktoe():
     game = TikTakToe()
     agents = {
         'X': QLearningAgent(game, marker='X', q_table=q_table),
-        'O': DefaultAgent(game, marker='O'),
+        'O': QLearningAgent(game, marker='O', q_table=q_table),
     }
-    turn: str = 'X'
     winner: str | None = None
     winning_line: list[tuple[int, int]] | None = None
     draw: bool = False
@@ -44,7 +43,7 @@ def tiktaktoe():
         panel_font = pygame.font.SysFont('courier', 18)
         total = sum(a.nodes_visited for a in agents.values())
         status = (
-            f'Winner: {winner}' if winner else ('Draw!' if draw else f'Turn:  {turn}')
+            f'Winner: {winner}' if winner else ('Draw!' if draw else f'Turn:  {game.current_player}')
         )
         panel_lines = [
             'STATS',
@@ -61,15 +60,14 @@ def tiktaktoe():
             screen.blit(surf, (panel_x + 15, BORDER + i * 28))
 
         if not game.is_game_over() and game.actions():
-            agents[turn].step()
+            current = game.current_player
+            agents[current].step()
 
-            if game.is_winner(turn):
-                winner = turn
-                winning_line = game.get_winning_line(turn)
+            if game.is_winner(current):
+                winner = current
+                winning_line = game.get_winning_line(current)
             elif game.is_draw():
                 draw = True
-            else:
-                turn = 'O' if turn == 'X' else 'X'
 
         if (winner or draw) and not game_over_printed:
             print(f'States explored: {sum(a.nodes_visited for a in agents.values()):,}')

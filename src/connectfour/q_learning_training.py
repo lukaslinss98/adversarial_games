@@ -3,11 +3,12 @@ import random
 
 import numpy as np
 
+from connectfour.environment import ConnectFour, Token
 from tiktaktoe.agent import Agent, DefaultAgent
 from tiktaktoe.environment import TikTakToe
 
 
-def get_reward(env: TikTakToe, player: str):
+def get_reward(env, player: str):
     if env.is_winner(player):
         return 1
 
@@ -28,18 +29,18 @@ def get_action(state, actions, q_vals, eps):
     return random.choice(actions)
 
 
-def train_tiktaktoe(episodes: int, save: bool = False):
+def train_connectfour(episodes: int, save: bool = False):
     EPISODES = episodes
     LR = 0.1
     GAMMA = 0.9
     EPSILON = 1.0
-    MIN_EPSILON = 0.2
+    MIN_EPSILON = 0.3
     EPSILON_DECAY = 0.9999
 
-    env = TikTakToe()
+    env = ConnectFour()
     q_vals = {}
 
-    makers = ['X', 'O']
+    makers = [Token.BLUE, Token.RED]
     for ep in range(EPISODES + 1):
         EPSILON = max(MIN_EPSILON, EPSILON * EPSILON_DECAY)
         agent_marker = random.choice(makers)
