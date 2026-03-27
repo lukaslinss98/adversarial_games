@@ -1,0 +1,58 @@
+import random
+
+from connectfour.minimax import minimax
+
+
+class Agent:
+    def __init__(self, env, marker, max_depth):
+        self.env = env
+        self.marker = marker
+        self.nodes_visited = 0
+        self.max_depth = max_depth
+
+    def move(self, move):
+        self.env.move(move, self.marker)
+
+    def step(self) -> None:
+        move = self._best_move()
+        self.env.move(move, self.marker)
+
+    def _best_move(self) -> int:
+        env = self.env.copy()
+        score_by_move = {}
+        for move in self.env.possible_moves():
+            env.move(*move, self.marker)
+            result = minimax(
+                env,
+                player=self.marker,
+                current=env.get_opponent(self.marker),
+                max_depth=self.max_depth,
+            )
+            score_by_move[move[0]] = result.score
+            env.clear(*move)
+            self.nodes_visited += result.nodes_visited
+
+        return max(score_by_move, key=lambda move: score_by_move[move])
+
+
+class DefaultAgent:
+    def __init__(self, env, marker):
+        self.env = env
+        self.marker = marker
+
+    def step(self) -> None:
+        move = self._best_move()
+        self.env.move(*move, self.marker)
+
+    def _best_move(self) -> list[int]:
+        winning_moves = self.env.winning_moves(self.marker)
+        if winning_moves:
+            return random.choice(winning_moves)
+
+        opponent = self.env.get_opponent(self.marker)
+        losing_moves = self.env.winning_moves(opponent)
+
+        if losing_moves:
+            return random.choice(losing_moves)
+
+        return random.choice(self.env.possible_moves())

@@ -1,0 +1,75 @@
+import random
+
+import numpy as np
+
+from tiktaktoe.minimax import minimax_alpha_beta
+
+
+class Agent:
+    def __init__(self, env, marker):
+        self.env = env
+        self.marker = marker
+        self.nodes_visited = 0
+
+    def step(self) -> None:
+        move = self._best_move()
+        self.env.move(*move, self.marker)
+
+    def _best_move(self) -> tuple[int, int]:
+        env = self.env.copy()
+        score_by_move = {}
+        for move in self.env.possible_moves():
+            env.move(*move, self.marker)
+            result = minimax_alpha_beta(
+                env,
+                player=self.marker,
+                current=env.get_opponent(self.marker),
+                max_depth=8,
+            )
+            score_by_move[move] = result.score
+            env.clear(*move)
+            self.nodes_visited += result.nodes_visited
+
+        return max(score_by_move, key=lambda move: score_by_move[move])
+
+
+class QLearningAgent:
+    def __init__(self, env, marker, q_table: dict):
+        self.env = env
+        self.marker = marker
+        self.q_vals = q_table
+        self.nodes_visited = 0
+
+    def step(self) -> None:
+        move = self._best_move()
+        self.env.move(*move, self.marker)
+
+    def _best_move(self):
+        state = self.env.state_key()
+        actions = self.env.actions()
+        max_arg = np.argmax([self.q_vals.get((state, action), 0) for action in actions])
+        return actions[max_arg]
+
+
+class DefaultAgent:
+    def __init__(self, env, marker):
+        self.env = env
+        self.marker = marker
+        self.nodes_visited = 0
+
+    def step(self) -> None:
+        move = self._best_move()
+        self.env.move(*move, self.marker)
+
+    def _best_move(self) -> tuple[int, int]:
+        winning_moves = self.env.winning_moves(self.marker)
+        if winning_moves:
+            return random.choice(winning_moves)
+
+        opponent = self.env.get_opponent(self.marker)
+        losing_moves = self.env.winning_moves(opponent)
+
+        if losing_moves:
+            return random.choice(losing_moves)
+
+        return random.choice(self.env.actions())
