@@ -29,7 +29,7 @@ def _load_dqn_weights(agent1: str, agent2: str):
 def _make_agent(name: str, env, marker: Token, q_table: dict | None, dqn_weights):
     match name:
         case 'minimax':
-            return MinimaxAgent(env, marker, max_depth=5)
+            return MinimaxAgent(env, marker, max_depth=5, pruning=True)
         case 'ql':
             return QLearningAgent(env, marker, q_table)
         case 'dqn':

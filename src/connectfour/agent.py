@@ -58,11 +58,12 @@ class QLearningAgent:
 
 
 class MinimaxAgent:
-    def __init__(self, env, marker, max_depth):
+    def __init__(self, env, marker, max_depth, pruning):
         self.env = env
         self.marker = marker
         self.nodes_visited = 0
         self.max_depth = max_depth
+        self.pruning = pruning
 
     def move(self, move):
         self.env.move(move, self.marker)
@@ -80,6 +81,7 @@ class MinimaxAgent:
                 player=self.marker,
                 current=env.get_opponent(self.marker),
                 max_depth=self.max_depth,
+                pruning=self.pruning,
             )
             score_by_move[move] = result.score
             env.clear(move)

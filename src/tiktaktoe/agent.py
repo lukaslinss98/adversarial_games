@@ -9,15 +9,17 @@ from tiktaktoe.model import QNet
 
 
 class MinimaxAgent:
-    def __init__(self, env, marker, max_depth, pruning):
+    def __init__(self, env, marker, max_depth, pruning, deterministic):
         self.env = env
         self.marker = marker
         self.nodes_visited = 0
         self.max_depth = max_depth
         self.pruning = pruning
+        self.deterministic = deterministic
 
     def step(self) -> None:
-        self.env.move(*self._best_move(), self.marker)
+        move = self._best_move()
+        self.env.move(*move, self.marker)
 
     def _best_move(self) -> tuple[int, int]:
         env = self.env.copy()
@@ -35,7 +37,12 @@ class MinimaxAgent:
             env.clear(*move)
             self.nodes_visited += result.nodes_visited
 
-        return max(score_by_move, key=lambda move: score_by_move[move])
+        if self.deterministic:
+            return max(score_by_move, key=lambda move: score_by_move[move])
+
+        max_score = max(score_by_move.values())
+        best_moves = [m for m, s in score_by_move.items() if s == max_score]
+        return random.choice(best_moves)
 
 
 class DQNAgent:
