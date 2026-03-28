@@ -2,10 +2,11 @@ import argparse
 
 from connectfour.evaluate import evaluate_connectfour
 from connectfour.game import connect_four
+from connectfour.dqn_training import train_connectfour_dqn
 from connectfour.q_learning_training import train_connectfour
+from tiktaktoe.dqn_training import train_tiktaktoe_dqn
 from tiktaktoe.evaluate import evaluate_tiktaktoe
 from tiktaktoe.game import tiktaktoe
-from tiktaktoe.dqn_training import train_tiktaktoe_dqn
 from tiktaktoe.q_learning_training import train_tiktaktoe
 
 VALID_GAMES = ('tiktaktoe', 'connectfour')
@@ -59,9 +60,15 @@ if __name__ == '__main__':
         choices=VALID_GAMES,
         help=f'Game to evaluate. Valid options: {", ".join(VALID_GAMES)}',
     )
-    eval_parser.add_argument('--runs', type=int, default=100, help='Number of games (default: 100)')
-    eval_parser.add_argument('--agent1', type=str, required=True, help='Agent 1 (minimax/ql/default/random)')
-    eval_parser.add_argument('--agent2', type=str, required=True, help='Agent 2 (minimax/ql/default/random)')
+    eval_parser.add_argument(
+        '--runs', type=int, default=100, help='Number of games (default: 100)'
+    )
+    eval_parser.add_argument(
+        '--agent1', type=str, required=True, help='Agent 1 (minimax/ql/default/random)'
+    )
+    eval_parser.add_argument(
+        '--agent2', type=str, required=True, help='Agent 2 (minimax/ql/default/random)'
+    )
 
     args = parser.parse_args()
 
@@ -77,7 +84,10 @@ if __name__ == '__main__':
             else:
                 train_tiktaktoe(episodes=args.episodes, save=args.save)
         if args.game == 'connectfour':
-            train_connectfour(episodes=args.episodes, save=args.save)
+            if args.algo == 'dqn':
+                train_connectfour_dqn(episodes=args.episodes, save=args.save)
+            else:
+                train_connectfour(episodes=args.episodes, save=args.save)
     elif args.mode == 'eval':
         if args.game == 'tiktaktoe':
             evaluate_tiktaktoe(args.runs, args.agent1, args.agent2)

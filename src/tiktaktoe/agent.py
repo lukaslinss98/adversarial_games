@@ -1,7 +1,10 @@
 import random
 
 import numpy as np
+import torch
 
+from dqn_model import QNet
+from tiktaktoe.environment import TikTakToe
 from tiktaktoe.minimax import minimax_alpha_beta
 
 
@@ -31,6 +34,42 @@ class MinimaxAgent:
             self.nodes_visited += result.nodes_visited
 
         return max(score_by_move, key=lambda move: score_by_move[move])
+
+
+class DQNAgent:
+    def __init__(self, env: TikTakToe, marker, weights):
+        self.env = env
+        self.marker = marker
+        self.device = torch.device(
+            'mps' if torch.backends.mps.is_available() else 'cpu'
+        )
+        self.net = self._init_net(weights)
+        self.nodes_visited = 0
+
+    def step(self) -> None:
+        input_vec = self.env.one_hot().to(self.device)
+        with torch.no_grad():
+            q_vals = self.net(input_vec)
+
+        mask = torch.full((9,), float('-inf')).to(self.device)
+        actions = self.env.actions()
+
+        for action in actions:
+            mask[action[0] * 3 + action[1]] = 0
+
+        q_values = q_vals + mask
+        best_index = q_values.argmax().item()
+        best_action = next(
+            action for action in actions if action[0] * 3 + action[1] == best_index
+        )
+        self.env.move(*best_action, self.marker)
+        print(self.env)
+
+    def _init_net(self, weights):
+        net = QNet(27, 9)
+        net.load_state_dict(weights)
+        net.eval()
+        return net.to(self.device)
 
 
 class QLearningAgent:

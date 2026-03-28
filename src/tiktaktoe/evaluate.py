@@ -1,25 +1,38 @@
 import pickle
+import random
+from pathlib import Path
 
-from tiktaktoe.agent import DefaultAgent, MinimaxAgent, QLearningAgent, RandomAgent
+import torch
+
+from tiktaktoe.agent import DQNAgent, DefaultAgent, MinimaxAgent, QLearningAgent, RandomAgent
 from tiktaktoe.environment import TikTakToe
 
-VALID_AGENTS = ('minimax', 'ql', 'default', 'random')
+VALID_AGENTS = ('minimax', 'ql', 'dqn', 'default', 'random')
 _MARKERS = ('X', 'O')
+_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
 
 def _load_q_table(agent1: str, agent2: str) -> dict | None:
     if 'ql' not in (agent1, agent2):
         return None
-    with open('q_table.pkl', 'rb') as f:
+    with open(_WEIGHTS_DIR / 'tiktaktoe_ql.pkl', 'rb') as f:
         return pickle.load(f)
 
 
-def _make_agent(name: str, env, marker: str, q_table: dict | None):
+def _load_dqn_weights(agent1: str, agent2: str):
+    if 'dqn' not in (agent1, agent2):
+        return None
+    return torch.load(_WEIGHTS_DIR / 'tiktaktoe_dqn.pth', weights_only=True)
+
+
+def _make_agent(name: str, env, marker: str, q_table: dict | None, dqn_weights):
     match name:
         case 'minimax':
             return MinimaxAgent(env, marker, max_depth=None)
         case 'ql':
             return QLearningAgent(env, marker, q_table)
+        case 'dqn':
+            return DQNAgent(env, marker, dqn_weights)
         case 'default':
             return DefaultAgent(env, marker)
         case 'random':
@@ -31,16 +44,17 @@ def _make_agent(name: str, env, marker: str, q_table: dict | None):
 def evaluate_tiktaktoe(runs: int, agent1_type: str, agent2_type: str) -> None:
     env = TikTakToe()
     q_table = _load_q_table(agent1_type, agent2_type)
+    dqn_weights = _load_dqn_weights(agent1_type, agent2_type)
 
     agent1_wins = agent2_wins = draws = 0
 
     for i in range(runs):
         print(f'\rGame {i + 1}/{runs}', end='', flush=True)
         env.reset()
-        a1m, a2m = (_MARKERS[0], _MARKERS[1]) if i % 2 == 0 else (_MARKERS[1], _MARKERS[0])
+        a1m, a2m = (_MARKERS[0], _MARKERS[1]) if random.random() < 0.5 else (_MARKERS[1], _MARKERS[0])
         agent_map = {
-            a1m: _make_agent(agent1_type, env, a1m, q_table),
-            a2m: _make_agent(agent2_type, env, a2m, q_table),
+            a1m: _make_agent(agent1_type, env, a1m, q_table, dqn_weights),
+            a2m: _make_agent(agent2_type, env, a2m, q_table, dqn_weights),
         }
 
         while not env.is_game_over():

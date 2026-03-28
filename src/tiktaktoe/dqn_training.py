@@ -1,33 +1,19 @@
 import random
 from collections import deque
+from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch import Tensor, nn
+from torch import Tensor
 
-from tiktaktoe.agent import DefaultAgent
+_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
+
+from dqn_model import QNet
+from tiktaktoe.agent import DefaultAgent, RandomAgent
 from tiktaktoe.environment import TikTakToe
-
-
-class QNet(nn.Module):
-    def __init__(self, input_dims, output_dims):
-        super().__init__()
-        self.linear_1 = nn.Linear(input_dims, 128)
-        self.activation_1 = nn.ReLU()
-        self.linear_2 = nn.Linear(128, 64)
-        self.activation_2 = nn.ReLU()
-        self.out = nn.Linear(64, output_dims)
-
-    def forward(self, x):
-        x = self.linear_1(x)
-        x = self.activation_1(x)
-        x = self.linear_2(x)
-        x = self.activation_2(x)
-        return self.out(x)
 
 
 class ReplayBuffer:
@@ -44,11 +30,11 @@ class ReplayBuffer:
     ):
         self.buffer.append((state, action, reward, new_state, is_over))
 
-    def sample(self, batch_size: int) -> list[tuple]:
+    def sample(self, batch_size: int) -> list[tuple[Tensor, int, int, Tensor, bool]]:
         return random.sample(self.buffer, batch_size)
 
-    def is_full(self):
-        return len(self.buffer) == self.buffer.maxlen
+    def __len__(self):
+        return len(self.buffer)
 
 
 def get_reward(env: TikTakToe, player: str):
@@ -64,32 +50,24 @@ def get_reward(env: TikTakToe, player: str):
     return 0
 
 
-def get_action(state, actions, q_vals, eps):
-    if random.random() > eps:
-        argmax = np.argmax([q_vals.get((state, action), 0) for action in actions])
-        return actions[argmax]
-
-    return random.choice(actions)
-
-
-action_to_index = lambda action: sum(action)
+action_to_index = lambda action: action[0] * 3 + action[1]
 
 
 def train_tiktaktoe_dqn(episodes: int, save: bool = False):
     EPISODES = episodes
     MOVES = 9
     GAMMA = 0.9
-    INPUT_DIMS = 29
-    BUFFER_CAP = 256
+    INPUT_DIMS = 27
+    BUFFER_CAP = 10000
     BATCH_SIZE = 64
-    LEARNING_RATE = 0.001
+    LEARNING_RATE = 0.00003
 
     EPSILON = 1.0
-    MIN_EPSILON = 0.1
-    EPSILON_DECAY = 0.9995
-    TARGET_UPDATE = 20
+    MIN_EPSILON = 0.01
+    EPSILON_DECAY = 0.9999
+    TARGET_UPDATE = 2000
 
-    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     makers = ['X', 'O']
     q_net = QNet(INPUT_DIMS, MOVES).to(device)
@@ -113,14 +91,17 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
             opponent.step()
 
         EPSILON = max(MIN_EPSILON, EPSILON * EPSILON_DECAY)
-
         while not env.is_game_over():
-            print(f'\r{ep} / {EPISODES} | {EPSILON=}', end='', flush=True)
+            print(
+                f'\r{ep} / {EPISODES} | Eps={EPSILON:.4f} | {device=}',
+                end='',
+                flush=True,
+            )
 
-            state = env.state_one_hot()
-            state = torch.tensor(state, dtype=torch.float32).to(device)
+            state = env.one_hot().to(device)
 
-            q_values: Tensor = q_net(state)
+            with torch.no_grad():
+                q_values: Tensor = q_net(state)
 
             mask = torch.full((9,), float('-inf')).to(device)
             actions = env.actions()
@@ -131,29 +112,31 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
             q_values = q_values + mask
 
             if random.random() > EPSILON:
-                best_index = q_values.argmax().item()
+                best_idx = q_values.argmax().item()
                 best_action = next(
-                    action
-                    for action in actions
-                    if action_to_index(action) == best_index
+                    action for action in actions if action_to_index(action) == best_idx
                 )
             else:
                 best_action = random.choice(actions)
 
             env.move(*best_action, agent)
-            new_state = torch.tensor(env.state_one_hot(), dtype=torch.float32).to(
-                device
-            )
+
+            if not env.is_game_over():
+                opponent.step()
+
+            reward = get_reward(env, agent)
+            new_state = env.one_hot().to(device)
+            is_over = env.is_game_over()
 
             buffer.push(
-                state,
-                action_to_index(best_action),
-                get_reward(env, agent),
-                new_state,
-                env.is_game_over(),
+                state=state,
+                action=action_to_index(best_action),
+                reward=reward,
+                new_state=new_state,
+                is_over=is_over,
             )
 
-            if buffer.is_full():
+            if len(buffer) >= BATCH_SIZE:
                 optimizer.zero_grad()
 
                 batch = buffer.sample(BATCH_SIZE)
@@ -165,13 +148,13 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
                 reward = torch.tensor(reward, dtype=torch.float32).to(device)
                 is_done = torch.tensor(is_done, dtype=torch.float32).to(device)
 
-                q_vals = q_net(state)  # (64,9)
-                pred = q_vals.gather(1, action.unsqueeze(1)).squeeze()  # (64,)
+                q_vals = q_net(state)
+                pred = q_vals.gather(1, action.unsqueeze(1)).squeeze(1)
 
                 target_q_vals = target_net(new_state)
 
                 next_q = target_q_vals.max(dim=1).values
-                target = reward + GAMMA * next_q * (1 - is_done)  # (64,)
+                target = reward + GAMMA * next_q * (1 - is_done)
 
                 loss = F.mse_loss(pred, target)
                 losses.append(loss.item())
@@ -180,9 +163,6 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
 
                 optimizer.step()
 
-            if not env.is_game_over():
-                opponent.step()
-
         if ep % TARGET_UPDATE == 0:
             target_net.load_state_dict(q_net.state_dict())
 
@@ -190,7 +170,10 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
     plt.plot(smoothed)
     plt.xlabel('Update step')
     plt.ylabel('MSE Loss')
+    plt.yscale('log')
     plt.title('DQN Training Loss')
     plt.show()
     if save:
-        torch.save(q_net.state_dict(), 'dqn_tiktaktoe.pth')
+        _WEIGHTS_DIR.mkdir(exist_ok=True)
+        torch.save(q_net.state_dict(), _WEIGHTS_DIR / 'tiktaktoe_dqn.pth')
+        print('saved weights')

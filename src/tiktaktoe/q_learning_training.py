@@ -1,5 +1,8 @@
 import pickle
 import random
+from pathlib import Path
+
+_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
 import numpy as np
 
@@ -79,6 +82,6 @@ def train_tiktaktoe(episodes: int, save: bool = False):
     print(len(q_vals))
 
     if save:
-        filename = 'q_table.pkl'
-        with open(filename, 'wb') as f:
+        _WEIGHTS_DIR.mkdir(exist_ok=True)
+        with open(_WEIGHTS_DIR / 'tiktaktoe_ql.pkl', 'wb') as f:
             pickle.dump(q_vals, f)

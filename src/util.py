@@ -1,9 +1,8 @@
-import pygame
-
 _font = None
 
 
 def get_font():
+    import pygame
     global _font
     if _font is None:
         _font = pygame.font.SysFont('courier', 50)

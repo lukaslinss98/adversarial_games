@@ -1,8 +1,11 @@
-import pickle
+from pathlib import Path
 
 import pygame
+import torch
 
-from tiktaktoe.agent import MinimaxAgent, QLearningAgent
+_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
+
+from tiktaktoe.agent import DefaultAgent, DQNAgent, MinimaxAgent, RandomAgent
 from tiktaktoe.environment import TikTakToe
 from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
@@ -13,13 +16,12 @@ def tiktaktoe():
         (WINDOW_SIZE + BORDER * 2 + PANEL_WIDTH, WINDOW_SIZE + BORDER * 2)
     )
     pygame.display.set_caption('Tic Tac Toe - AI vs AI')
-    with open('q_table.pkl', 'rb') as f:
-        q_table = pickle.load(f)
+    weights = torch.load(_WEIGHTS_DIR / 'tiktaktoe_dqn.pth', weights_only=True)
 
     game = TikTakToe()
     agents = {
-        'X': QLearningAgent(game, marker='X', q_table=q_table),
-        'O': MinimaxAgent(game, marker='O', max_depth=None),
+        'X': DQNAgent(game, marker='X', weights=weights),
+        'O': RandomAgent(game, marker='O'),
     }
     winner: str | None = None
     winning_line: list[tuple[int, int]] | None = None

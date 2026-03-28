@@ -1,5 +1,8 @@
 from enum import Enum
 
+import numpy as np
+import torch
+
 from util import (BLUE, BORDER, CONNECT_FOUR_CELL_SIZE, CONNECT_FOUR_COLS,
                   CONNECT_FOUR_ROWS, RED, WHITE)
 
@@ -51,6 +54,18 @@ class ConnectFour:
             self.current_player,
         )
 
+    def one_hot(self) -> torch.Tensor:
+        one_hot_vec = [1, 0] if self.current_player == Token.RED else [0, 1]
+        for row in self.state:
+            for cell in row:
+                if cell == Token.RED:
+                    one_hot_vec.extend([1, 0, 0])
+                elif cell == Token.BLUE:
+                    one_hot_vec.extend([0, 1, 0])
+                else:
+                    one_hot_vec.extend([0, 0, 1])
+        return torch.tensor(one_hot_vec, dtype=torch.float32)
+
     def copy(self):
         new = ConnectFour()
         new.state = [row[:] for row in self.state]
@@ -79,6 +94,7 @@ class ConnectFour:
 
     def draw(self, screen, winning_line=None):
         import pygame
+
         for col in range(CONNECT_FOUR_COLS + 1):
             pygame.draw.line(
                 screen,

@@ -1,8 +1,11 @@
-import pickle
+from pathlib import Path
 
 import pygame
+import torch
 
-from connectfour.agent import DefaultAgent, QLearningAgent
+_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
+
+from connectfour.agent import DefaultAgent, DQNAgent, RandomAgent
 from connectfour.environment import ConnectFour, Token
 from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
@@ -14,13 +17,12 @@ def connect_four():
     )
     pygame.display.set_caption('Connect Four')
 
-    with open('q_table_connectfour.pkl', 'rb') as f:
-        q_table = pickle.load(f)
+    weights = torch.load(_WEIGHTS_DIR / 'connectfour_dqn.pth', weights_only=True)
 
     game = ConnectFour()
     agents = {
-        Token.BLUE: DefaultAgent(game, marker=Token.BLUE),
-        Token.RED: QLearningAgent(game, marker=Token.RED, q_table=q_table),
+        Token.RED: DQNAgent(game, marker=Token.RED, weights=weights),
+        Token.BLUE: RandomAgent(game, marker=Token.BLUE),
     }
     winner: Token | None = None
     draw = False

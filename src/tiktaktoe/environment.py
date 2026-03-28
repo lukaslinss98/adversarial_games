@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from util import BORDER, CELL_SIZE, GREEN, WHITE, WINDOW_SIZE, get_font
 
@@ -116,17 +117,17 @@ class TikTakToe:
             self.current_player,
         )
 
-    def state_one_hot(self):
-        one_hot_vec = [1, 0] if self.current_player == 'X' else [0, 1]
+    def one_hot(self):
+        one_hot_vec = []
         for row in self.state:
             for cell in row:
-                if cell == 'X':
+                if cell == self.current_player:
                     one_hot_vec.extend([1, 0, 0])
-                elif cell == 'O':
+                elif cell == self.get_opponent(self.current_player):
                     one_hot_vec.extend([0, 1, 0])
                 else:
                     one_hot_vec.extend([0, 0, 1])
-        return np.array(one_hot_vec)
+        return torch.tensor(one_hot_vec, dtype=torch.float32)
 
     def __str__(self) -> str:
         return ''.join(f'{row}\n' for row in self.state)
