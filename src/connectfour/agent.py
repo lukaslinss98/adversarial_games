@@ -1,23 +1,24 @@
 import random
-from pathlib import Path
 
 import numpy as np
 import torch
 
 from connectfour.minimax import minimax
-from dqn_model import QNet
+from connectfour.model import QNet
 
 
 class DQNAgent:
     def __init__(self, env, marker, weights):
         self.env = env
         self.marker = marker
-        self.device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+        self.device = torch.device(
+            'mps' if torch.backends.mps.is_available() else 'cpu'
+        )
         self.net = self._init_net(weights)
         self.nodes_visited = 0
 
     def step(self) -> None:
-        input_vec = self.env.one_hot().to(self.device)
+        input_vec = self.env.one_hot(self.marker).to(self.device)
         with torch.no_grad():
             q_vals = self.net(input_vec)
 
@@ -32,7 +33,7 @@ class DQNAgent:
         self.env.move(best_action, self.marker)
 
     def _init_net(self, weights):
-        net = QNet(6 * 7 * 3 + 2, 7)
+        net = QNet(6 * 7 * 3, 7)
         net.load_state_dict(weights)
         net.eval()
         return net.to(self.device)

@@ -4,7 +4,8 @@ from pathlib import Path
 
 import torch
 
-from connectfour.agent import DefaultAgent, DQNAgent, MinimaxAgent, QLearningAgent, RandomAgent
+from connectfour.agent import (DefaultAgent, DQNAgent, MinimaxAgent,
+                               QLearningAgent, RandomAgent)
 from connectfour.environment import ConnectFour, Token
 
 VALID_AGENTS = ('minimax', 'ql', 'dqn', 'default', 'random')
@@ -51,7 +52,11 @@ def evaluate_connectfour(runs: int, agent1_type: str, agent2_type: str) -> None:
     for i in range(runs):
         print(f'\rGame {i + 1}/{runs}', end='', flush=True)
         env.reset()
-        a1m, a2m = (_MARKERS[0], _MARKERS[1]) if random.random() < 0.5 else (_MARKERS[1], _MARKERS[0])
+        a1m, a2m = (
+            (_MARKERS[0], _MARKERS[1])
+            if random.random() < 0.5
+            else (_MARKERS[1], _MARKERS[0])
+        )
         agent_map = {
             a1m: _make_agent(agent1_type, env, a1m, q_table, dqn_weights),
             a2m: _make_agent(agent2_type, env, a2m, q_table, dqn_weights),

@@ -117,13 +117,14 @@ class TikTakToe:
             self.current_player,
         )
 
-    def one_hot(self):
+    def one_hot(self, player: str):
+        opponent = self.get_opponent(player)
         one_hot_vec = []
         for row in self.state:
             for cell in row:
-                if cell == self.current_player:
+                if cell == player:
                     one_hot_vec.extend([1, 0, 0])
-                elif cell == self.get_opponent(self.current_player):
+                elif cell == opponent:
                     one_hot_vec.extend([0, 1, 0])
                 else:
                     one_hot_vec.extend([0, 0, 1])

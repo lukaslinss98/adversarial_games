@@ -4,7 +4,8 @@ from pathlib import Path
 
 import torch
 
-from tiktaktoe.agent import DQNAgent, DefaultAgent, MinimaxAgent, QLearningAgent, RandomAgent
+from tiktaktoe.agent import (DefaultAgent, DQNAgent, MinimaxAgent,
+                             QLearningAgent, RandomAgent)
 from tiktaktoe.environment import TikTakToe
 
 VALID_AGENTS = ('minimax', 'ql', 'dqn', 'default', 'random')
@@ -28,7 +29,7 @@ def _load_dqn_weights(agent1: str, agent2: str):
 def _make_agent(name: str, env, marker: str, q_table: dict | None, dqn_weights):
     match name:
         case 'minimax':
-            return MinimaxAgent(env, marker, max_depth=None)
+            return MinimaxAgent(env, marker, max_depth=None, pruning=True)
         case 'ql':
             return QLearningAgent(env, marker, q_table)
         case 'dqn':
@@ -51,7 +52,11 @@ def evaluate_tiktaktoe(runs: int, agent1_type: str, agent2_type: str) -> None:
     for i in range(runs):
         print(f'\rGame {i + 1}/{runs}', end='', flush=True)
         env.reset()
-        a1m, a2m = (_MARKERS[0], _MARKERS[1]) if random.random() < 0.5 else (_MARKERS[1], _MARKERS[0])
+        a1m, a2m = (
+            (_MARKERS[0], _MARKERS[1])
+            if random.random() < 0.5
+            else (_MARKERS[1], _MARKERS[0])
+        )
         agent_map = {
             a1m: _make_agent(agent1_type, env, a1m, q_table, dqn_weights),
             a2m: _make_agent(agent2_type, env, a2m, q_table, dqn_weights),

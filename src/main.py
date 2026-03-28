@@ -1,11 +1,11 @@
 import argparse
+from itertools import combinations_with_replacement
 
-from connectfour.evaluate import evaluate_connectfour
+from connectfour.dqn_training import train_model
+from connectfour.evaluate import VALID_AGENTS as CF_AGENTS, evaluate_connectfour
 from connectfour.game import connect_four
-from connectfour.dqn_training import train_connectfour_dqn
-from connectfour.q_learning_training import train_connectfour
 from tiktaktoe.dqn_training import train_tiktaktoe_dqn
-from tiktaktoe.evaluate import evaluate_tiktaktoe
+from tiktaktoe.evaluate import VALID_AGENTS as TTT_AGENTS, evaluate_tiktaktoe
 from tiktaktoe.game import tiktaktoe
 from tiktaktoe.q_learning_training import train_tiktaktoe
 
@@ -64,10 +64,13 @@ if __name__ == '__main__':
         '--runs', type=int, default=100, help='Number of games (default: 100)'
     )
     eval_parser.add_argument(
-        '--agent1', type=str, required=True, help='Agent 1 (minimax/ql/default/random)'
+        '--agent1', type=str, help='Agent 1 (minimax/ql/default/random)'
     )
     eval_parser.add_argument(
-        '--agent2', type=str, required=True, help='Agent 2 (minimax/ql/default/random)'
+        '--agent2', type=str, help='Agent 2 (minimax/ql/default/random)'
+    )
+    eval_parser.add_argument(
+        '--all', action='store_true', help='Test all agent combinations'
     )
 
     args = parser.parse_args()
@@ -85,11 +88,24 @@ if __name__ == '__main__':
                 train_tiktaktoe(episodes=args.episodes, save=args.save)
         if args.game == 'connectfour':
             if args.algo == 'dqn':
-                train_connectfour_dqn(episodes=args.episodes, save=args.save)
+                train_model(episodes=args.episodes, save=args.save)
             else:
-                train_connectfour(episodes=args.episodes, save=args.save)
+                train_model(episodes=args.episodes, save=args.save)
     elif args.mode == 'eval':
-        if args.game == 'tiktaktoe':
-            evaluate_tiktaktoe(args.runs, args.agent1, args.agent2)
-        elif args.game == 'connectfour':
-            evaluate_connectfour(args.runs, args.agent1, args.agent2)
+        if getattr(args, 'all', False):
+            agents = TTT_AGENTS if args.game == 'tiktaktoe' else CF_AGENTS
+            for a1, a2 in combinations_with_replacement(agents, 2):
+                print(f'\n{"="*40}')
+                print(f'{a1} vs {a2}')
+                print(f'{"="*40}')
+                if args.game == 'tiktaktoe':
+                    evaluate_tiktaktoe(args.runs, a1, a2)
+                elif args.game == 'connectfour':
+                    evaluate_connectfour(args.runs, a1, a2)
+        else:
+            if not args.agent1 or not args.agent2:
+                parser.error('--agent1 and --agent2 are required unless --all is set')
+            if args.game == 'tiktaktoe':
+                evaluate_tiktaktoe(args.runs, args.agent1, args.agent2)
+            elif args.game == 'connectfour':
+                evaluate_connectfour(args.runs, args.agent1, args.agent2)

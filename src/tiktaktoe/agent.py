@@ -3,17 +3,18 @@ import random
 import numpy as np
 import torch
 
-from dqn_model import QNet
 from tiktaktoe.environment import TikTakToe
 from tiktaktoe.minimax import minimax_alpha_beta
+from tiktaktoe.model import QNet
 
 
 class MinimaxAgent:
-    def __init__(self, env, marker, max_depth):
+    def __init__(self, env, marker, max_depth, pruning):
         self.env = env
         self.marker = marker
         self.nodes_visited = 0
         self.max_depth = max_depth
+        self.pruning = pruning
 
     def step(self) -> None:
         self.env.move(*self._best_move(), self.marker)
@@ -28,6 +29,7 @@ class MinimaxAgent:
                 player=self.marker,
                 current=env.get_opponent(self.marker),
                 max_depth=self.max_depth,
+                pruning=self.pruning,
             )
             score_by_move[move] = result.score
             env.clear(*move)
@@ -47,7 +49,7 @@ class DQNAgent:
         self.nodes_visited = 0
 
     def step(self) -> None:
-        input_vec = self.env.one_hot().to(self.device)
+        input_vec = self.env.one_hot(self.marker).to(self.device)
         with torch.no_grad():
             q_vals = self.net(input_vec)
 
@@ -63,7 +65,6 @@ class DQNAgent:
             action for action in actions if action[0] * 3 + action[1] == best_index
         )
         self.env.move(*best_action, self.marker)
-        print(self.env)
 
     def _init_net(self, weights):
         net = QNet(27, 9)

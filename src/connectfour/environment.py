@@ -54,13 +54,14 @@ class ConnectFour:
             self.current_player,
         )
 
-    def one_hot(self) -> torch.Tensor:
-        one_hot_vec = [1, 0] if self.current_player == Token.RED else [0, 1]
+    def one_hot(self, player: Token) -> torch.Tensor:
+        opponent = self.get_opponent(player)
+        one_hot_vec = []
         for row in self.state:
             for cell in row:
-                if cell == Token.RED:
+                if cell == player:
                     one_hot_vec.extend([1, 0, 0])
-                elif cell == Token.BLUE:
+                elif cell == opponent:
                     one_hot_vec.extend([0, 1, 0])
                 else:
                     one_hot_vec.extend([0, 0, 1])

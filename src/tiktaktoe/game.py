@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pygame
 import torch
 
 _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
@@ -11,6 +10,8 @@ from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
 
 def tiktaktoe():
+    import pygame
+
     pygame.init()
     screen = pygame.display.set_mode(
         (WINDOW_SIZE + BORDER * 2 + PANEL_WIDTH, WINDOW_SIZE + BORDER * 2)

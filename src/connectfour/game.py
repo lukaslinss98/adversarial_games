@@ -1,7 +1,8 @@
 from pathlib import Path
 
-import pygame
 import torch
+
+from tiktaktoe.agent import MinimaxAgent
 
 _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
@@ -11,6 +12,8 @@ from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
 
 def connect_four():
+    import pygame
+
     pygame.init()
     screen = pygame.display.set_mode(
         (WINDOW_SIZE + BORDER * 2 + PANEL_WIDTH, WINDOW_SIZE + BORDER * 2)
@@ -22,12 +25,12 @@ def connect_four():
     game = ConnectFour()
     agents = {
         Token.RED: DQNAgent(game, marker=Token.RED, weights=weights),
-        Token.BLUE: RandomAgent(game, marker=Token.BLUE),
+        Token.BLUE: MinimaxAgent(game, marker=Token.BLUE, max_depth=5),
     }
     winner: Token | None = None
     draw = False
     running = True
-    move_delay = 100
+    move_delay = 300
     game_over_printed = False
 
     while running:
