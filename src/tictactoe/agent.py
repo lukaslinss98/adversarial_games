@@ -3,9 +3,9 @@ import random
 import numpy as np
 import torch
 
-from tiktaktoe.environment import TikTakToe
-from tiktaktoe.minimax import minimax_alpha_beta
-from tiktaktoe.model import QNet
+from tictactoe.environment import TicTacToe
+from tictactoe.minimax import minimax_alpha_beta
+from tictactoe.model import QNet
 
 
 class MinimaxAgent:
@@ -19,7 +19,7 @@ class MinimaxAgent:
 
     def step(self) -> None:
         move = self._best_move()
-        self.env.move(*move, self.marker)
+        self.env.move(move, self.marker)
 
     def _best_move(self) -> tuple[int, int]:
         env = self.env.copy()
@@ -46,7 +46,7 @@ class MinimaxAgent:
 
 
 class DQNAgent:
-    def __init__(self, env: TikTakToe, marker, weights):
+    def __init__(self, env: TicTacToe, marker, weights):
         self.env = env
         self.marker = marker
         self.device = torch.device(
@@ -71,7 +71,7 @@ class DQNAgent:
         best_action = next(
             action for action in actions if action[0] * 3 + action[1] == best_index
         )
-        self.env.move(*best_action, self.marker)
+        self.env.move(best_action, self.marker)
 
     def _init_net(self, weights):
         net = QNet(27, 9)
@@ -88,7 +88,7 @@ class QLearningAgent:
         self.nodes_visited = 0
 
     def step(self) -> None:
-        self.env.move(*self._best_move(), self.marker)
+        self.env.move(self._best_move(), self.marker)
 
     def _best_move(self):
         state = self.env.state_key()
@@ -104,7 +104,7 @@ class RandomAgent:
         self.nodes_visited = 0
 
     def step(self) -> None:
-        self.env.move(*random.choice(self.env.actions()), self.marker)
+        self.env.move(random.choice(self.env.actions()), self.marker)
 
 
 class DefaultAgent:
@@ -115,7 +115,7 @@ class DefaultAgent:
 
     def step(self) -> None:
         best_move = self._best_move()
-        self.env.move(*best_move, self.marker)
+        self.env.move(best_move, self.marker)
 
     def _best_move(self) -> tuple[int, int]:
         winning_moves = self.env.winning_moves(self.marker)

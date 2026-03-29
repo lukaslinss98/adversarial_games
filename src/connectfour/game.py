@@ -2,12 +2,12 @@ from pathlib import Path
 
 import torch
 
-from tiktaktoe.agent import MinimaxAgent
+from agents import DQNAgent, MinimaxAgent
+from connectfour.environment import ConnectFour, Token
+from connectfour.minimax import minimax
+from connectfour.model import QNet
 
 _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
-
-from connectfour.agent import DefaultAgent, DQNAgent, RandomAgent
-from connectfour.environment import ConnectFour, Token
 from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
 
@@ -24,8 +24,20 @@ def connect_four():
 
     game = ConnectFour()
     agents = {
-        Token.RED: DQNAgent(game, marker=Token.RED, weights=weights),
-        Token.BLUE: MinimaxAgent(game, marker=Token.BLUE, max_depth=5),
+        Token.RED: DQNAgent(
+            game,
+            marker=Token.RED,
+            weights=weights,
+            net=QNet,
+            input_dims=6 * 7 * 3,
+            output_dims=7,
+        ),
+        Token.BLUE: MinimaxAgent(
+            game,
+            marker=Token.BLUE,
+            minimax_fn=minimax,
+            max_depth=5,
+        ),
     }
     winner: Token | None = None
     draw = False
@@ -39,7 +51,7 @@ def connect_four():
                 running = False
 
         screen.fill(BLACK)
-        game.draw(screen, None)
+        game.draw(screen)
 
         panel_x = WINDOW_SIZE + BORDER * 2
         pygame.draw.line(

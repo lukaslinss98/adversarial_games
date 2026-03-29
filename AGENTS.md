@@ -13,7 +13,7 @@ adversarial_games/
 │   ├── agent.py          # Agent class for making moves
 │   ├── util.py           # Constants and utilities
 │   ├── environments/
-│   │   └── tiktaktoe.py  # TikTakToe game environment
+│   │   └── tictactoe.py  # TicTacToe game environment
 │   └── algorithms/
 │       └── minimax.py     # Minimax AI algorithm
 ├── pyproject.toml        # Project configuration
@@ -81,7 +81,7 @@ import pygame
 
 # Local (absolute from src)
 from agent import Agent
-from environments.tiktaktoe import TikTakToe
+from environments.tictactoe import TicTacToe
 ```
 
 ### Formatting
@@ -100,16 +100,16 @@ from environments.tiktaktoe import TikTakToe
 - Example:
 
 ```python
-def minimax(state: TikTakToe) -> tuple[int, int] | None:
+def minimax(state: TicTacToe) -> tuple[int, int] | None:
     ...
 ```
 
 ### Naming Conventions
 
-- **Classes**: PascalCase (e.g., `TikTakToe`, `Agent`)
+- **Classes**: PascalCase (e.g., `TicTacToe`, `Agent`)
 - **Functions/variables**: snake_case (e.g., `possible_moves`, `game_board`)
 - **Constants**: SCREAMING_SNAKE_CASE (e.g., `WINDOW_SIZE`, `WIN_LINES`)
-- **Modules**: snake_case (e.g., `tiktaktoe.py`, `minimax.py`)
+- **Modules**: snake_case (e.g., `tictactoe.py`, `minimax.py`)
 
 ### Error Handling
 

@@ -10,7 +10,7 @@ import torch.optim as optim
 from torch import Tensor
 from torch.nn.utils import clip_grad_norm_
 
-from connectfour.agent import DefaultAgent, RandomAgent
+from agents import DefaultAgent
 from connectfour.environment import ConnectFour, Token
 from connectfour.model import QNet
 

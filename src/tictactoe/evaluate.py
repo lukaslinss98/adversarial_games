@@ -4,9 +4,11 @@ from pathlib import Path
 
 import torch
 
-from tiktaktoe.agent import (DefaultAgent, DQNAgent, MinimaxAgent,
-                             QLearningAgent, RandomAgent)
-from tiktaktoe.environment import TikTakToe
+from agents import (DefaultAgent, DQNAgent, MinimaxAgent, QLearningAgent,
+                    RandomAgent)
+from tictactoe.environment import TicTacToe
+from tictactoe.minimax import minimax_alpha_beta
+from tictactoe.model import QNet
 
 VALID_AGENTS = ('minimax', 'ql', 'dqn', 'default', 'random')
 _MARKERS = ('X', 'O')
@@ -16,24 +18,34 @@ _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 def _load_q_table(agent1: str, agent2: str) -> dict | None:
     if 'ql' not in (agent1, agent2):
         return None
-    with open(_WEIGHTS_DIR / 'tiktaktoe_ql.pkl', 'rb') as f:
+    with open(_WEIGHTS_DIR / 'tictactoe_ql.pkl', 'rb') as f:
         return pickle.load(f)
 
 
 def _load_dqn_weights(agent1: str, agent2: str):
     if 'dqn' not in (agent1, agent2):
         return None
-    return torch.load(_WEIGHTS_DIR / 'tiktaktoe_dqn.pth', weights_only=True)
+    return torch.load(_WEIGHTS_DIR / 'tictactoe_dqn.pth', weights_only=True)
 
 
 def _make_agent(name: str, env, marker: str, q_table: dict | None, dqn_weights):
     match name:
         case 'minimax':
-            return MinimaxAgent(env, marker, max_depth=None, pruning=True)
+            return MinimaxAgent(
+                env, marker, minimax_fn=minimax_alpha_beta, max_depth=None, pruning=True
+            )
         case 'ql':
             return QLearningAgent(env, marker, q_table)
         case 'dqn':
-            return DQNAgent(env, marker, dqn_weights)
+            return DQNAgent(
+                env,
+                marker,
+                dqn_weights,
+                net=QNet,
+                input_dims=27,
+                output_dims=9,
+                action_to_index=lambda a: a[0] * 3 + a[1],
+            )
         case 'default':
             return DefaultAgent(env, marker)
         case 'random':
@@ -42,8 +54,8 @@ def _make_agent(name: str, env, marker: str, q_table: dict | None, dqn_weights):
             raise ValueError(f'Unknown agent "{name}". Valid: {VALID_AGENTS}')
 
 
-def evaluate_tiktaktoe(runs: int, agent1_type: str, agent2_type: str) -> None:
-    env = TikTakToe()
+def evaluate_tictactoe(runs: int, agent1_type: str, agent2_type: str) -> None:
+    env = TicTacToe()
     q_table = _load_q_table(agent1_type, agent2_type)
     dqn_weights = _load_dqn_weights(agent1_type, agent2_type)
 

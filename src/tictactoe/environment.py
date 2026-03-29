@@ -1,6 +1,6 @@
-import numpy as np
 import torch
 
+from environment import Environment
 from util import BORDER, CELL_SIZE, GREEN, WHITE, WINDOW_SIZE, get_font
 
 WIN_LINES = [
@@ -15,17 +15,19 @@ WIN_LINES = [
 ]
 
 
-class TikTakToe:
+class TicTacToe(Environment):
     def __init__(self):
         self.state: list[list[str | None]] = [[None, None, None] for _ in range(3)]
         self.current_player: str = 'X'
 
-    def move(self, x, y, player):
-        self.state[x][y] = player
+    def move(self, action, player):
+        r, c = action
+        self.state[r][c] = player
         self.current_player = self.get_opponent(player)
 
-    def clear(self, x: int, y: int):
-        self.state[x][y] = None
+    def clear(self, action):
+        r, c = action
+        self.state[r][c] = None
         self.current_player = self.get_opponent(self.current_player)
 
     def actions(self) -> list[tuple[int, int]]:
@@ -46,28 +48,58 @@ class TikTakToe:
             self.is_winner(marker) for marker in ('X', 'O')
         )
 
+    def is_game_over(self) -> bool:
+        return self.is_winner('X') or self.is_winner('O') or self.is_draw()
+
+    def winning_moves(self, player):
+        moves = []
+        for move in self.actions():
+            self.move(move, player)
+            if self.is_winner(player):
+                moves.append(move)
+            self.clear(move)
+        return moves
+
     def get_opponent(self, player):
         if player == 'X':
             return 'O'
         return 'X'
 
-    def is_game_over(self) -> bool:
-        return self.is_winner('X') or self.is_winner('O') or self.is_draw()
+    def state_key(self):
+        return tuple(cell for row in self.state for cell in row) + (
+            self.current_player,
+        )
+
+    def one_hot(self, player: str):
+        opponent = self.get_opponent(player)
+        one_hot_vec = []
+        for row in self.state:
+            for cell in row:
+                if cell == player:
+                    one_hot_vec.extend([1, 0, 0])
+                elif cell == opponent:
+                    one_hot_vec.extend([0, 1, 0])
+                else:
+                    one_hot_vec.extend([0, 0, 1])
+        return torch.tensor(one_hot_vec, dtype=torch.float32)
+
+    def copy(self):
+        new_game = TicTacToe()
+        new_game.state = [row[:] for row in self.state]
+        new_game.current_player = self.current_player
+        return new_game
+
+    def reset(self):
+        self.state = [[None, None, None] for _ in range(3)]
+        self.current_player = 'X'
+
+    # Game-specific methods
 
     def get_winning_line(self, player: str) -> list[tuple[int, int]] | None:
         for line in WIN_LINES:
             if all(self.state[x][y] == player for x, y in line):
                 return line
         return None
-
-    def winning_moves(self, player):
-        moves = []
-        for move in self.actions():
-            self.move(*move, player)
-            if self.is_winner(player):
-                moves.append(move)
-            self.clear(*move)
-        return moves
 
     def draw(self, screen, winning_line: list[tuple[int, int]] | None = None) -> None:
         import pygame
@@ -101,34 +133,6 @@ class TikTakToe:
                         )
                     )
                     screen.blit(text, text_rect)
-
-    def reset(self):
-        self.state = [[None, None, None] for _ in range(3)]
-        self.current_player = 'X'
-
-    def copy(self):
-        new_game = TikTakToe()
-        new_game.state = [row[:] for row in self.state]
-        new_game.current_player = self.current_player
-        return new_game
-
-    def state_key(self):
-        return tuple(cell for row in self.state for cell in row) + (
-            self.current_player,
-        )
-
-    def one_hot(self, player: str):
-        opponent = self.get_opponent(player)
-        one_hot_vec = []
-        for row in self.state:
-            for cell in row:
-                if cell == player:
-                    one_hot_vec.extend([1, 0, 0])
-                elif cell == opponent:
-                    one_hot_vec.extend([0, 1, 0])
-                else:
-                    one_hot_vec.extend([0, 0, 1])
-        return torch.tensor(one_hot_vec, dtype=torch.float32)
 
     def __str__(self) -> str:
         return ''.join(f'{row}\n' for row in self.state)

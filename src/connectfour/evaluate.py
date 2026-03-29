@@ -4,9 +4,11 @@ from pathlib import Path
 
 import torch
 
-from connectfour.agent import (DefaultAgent, DQNAgent, MinimaxAgent,
-                               QLearningAgent, RandomAgent)
+from agents import (DefaultAgent, DQNAgent, MinimaxAgent, QLearningAgent,
+                    RandomAgent)
 from connectfour.environment import ConnectFour, Token
+from connectfour.minimax import minimax
+from connectfour.model import QNet
 
 VALID_AGENTS = ('minimax', 'ql', 'dqn', 'default', 'random')
 _MARKERS = (Token.RED, Token.BLUE)
@@ -29,11 +31,20 @@ def _load_dqn_weights(agent1: str, agent2: str):
 def _make_agent(name: str, env, marker: Token, q_table: dict | None, dqn_weights):
     match name:
         case 'minimax':
-            return MinimaxAgent(env, marker, max_depth=5, pruning=True)
+            return MinimaxAgent(
+                env, marker, minimax_fn=minimax, max_depth=5, pruning=True
+            )
         case 'ql':
             return QLearningAgent(env, marker, q_table)
         case 'dqn':
-            return DQNAgent(env, marker, dqn_weights)
+            return DQNAgent(
+                env,
+                marker,
+                dqn_weights,
+                net=QNet,
+                input_dims=6 * 7 * 3,
+                output_dims=7,
+            )
         case 'default':
             return DefaultAgent(env, marker)
         case 'random':

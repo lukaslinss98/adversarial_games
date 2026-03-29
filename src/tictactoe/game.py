@@ -4,12 +4,13 @@ import torch
 
 _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
-from tiktaktoe.agent import DefaultAgent, DQNAgent, MinimaxAgent, RandomAgent
-from tiktaktoe.environment import TikTakToe
+from agents import DQNAgent, RandomAgent
+from tictactoe.environment import TicTacToe
+from tictactoe.model import QNet
 from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
 
-def tiktaktoe():
+def tictactoe():
     import pygame
 
     pygame.init()
@@ -17,11 +18,19 @@ def tiktaktoe():
         (WINDOW_SIZE + BORDER * 2 + PANEL_WIDTH, WINDOW_SIZE + BORDER * 2)
     )
     pygame.display.set_caption('Tic Tac Toe - AI vs AI')
-    weights = torch.load(_WEIGHTS_DIR / 'tiktaktoe_dqn.pth', weights_only=True)
+    weights = torch.load(_WEIGHTS_DIR / 'tictactoe_dqn.pth', weights_only=True)
 
-    game = TikTakToe()
+    game = TicTacToe()
     agents = {
-        'X': DQNAgent(game, marker='X', weights=weights),
+        'X': DQNAgent(
+            game,
+            marker='X',
+            weights=weights,
+            net=QNet,
+            input_dims=27,
+            output_dims=9,
+            action_to_index=lambda a: a[0] * 3 + a[1],
+        ),
         'O': RandomAgent(game, marker='O'),
     }
     winner: str | None = None

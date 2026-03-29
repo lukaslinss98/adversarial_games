@@ -6,11 +6,11 @@ _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
 import numpy as np
 
-from tiktaktoe.agent import DefaultAgent
-from tiktaktoe.environment import TikTakToe
+from agents import DefaultAgent
+from tictactoe.environment import TicTacToe
 
 
-def get_reward(env: TikTakToe, player: str):
+def get_reward(env: TicTacToe, player: str):
     if env.is_winner(player):
         return 1
 
@@ -31,7 +31,7 @@ def get_action(state, actions, q_vals, eps):
     return random.choice(actions)
 
 
-def train_tiktaktoe(episodes: int, save: bool = False):
+def train_tictactoe(episodes: int, save: bool = False):
     EPISODES = episodes
     LR = 0.1
     GAMMA = 0.9
@@ -39,7 +39,7 @@ def train_tiktaktoe(episodes: int, save: bool = False):
     MIN_EPSILON = 0.2
     EPSILON_DECAY = 0.9999
 
-    env = TikTakToe()
+    env = TicTacToe()
     q_vals = {}
 
     makers = ['X', 'O']
@@ -60,7 +60,7 @@ def train_tiktaktoe(episodes: int, save: bool = False):
             action = get_action(state, actions, q_vals, EPSILON)
             current_q = q_vals.get((state, action), 0)
 
-            env.move(*action, agent)
+            env.move(action, agent)
 
             if not env.is_game_over():
                 opponent.step()
@@ -83,5 +83,5 @@ def train_tiktaktoe(episodes: int, save: bool = False):
 
     if save:
         _WEIGHTS_DIR.mkdir(exist_ok=True)
-        with open(_WEIGHTS_DIR / 'tiktaktoe_ql.pkl', 'wb') as f:
+        with open(_WEIGHTS_DIR / 'tictactoe_ql.pkl', 'wb') as f:
             pickle.dump(q_vals, f)

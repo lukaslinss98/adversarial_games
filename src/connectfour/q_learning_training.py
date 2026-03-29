@@ -6,7 +6,7 @@ _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
 import numpy as np
 
-from connectfour.agent import DefaultAgent
+from agents import DefaultAgent
 from connectfour.environment import ConnectFour, Token
 
 

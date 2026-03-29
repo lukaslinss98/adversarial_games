@@ -12,9 +12,9 @@ from torch.nn.utils import clip_grad_norm_
 
 _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
-from tiktaktoe.agent import DefaultAgent, RandomAgent
-from tiktaktoe.environment import TikTakToe
-from tiktaktoe.model import QNet
+from agents import DefaultAgent
+from tictactoe.environment import TicTacToe
+from tictactoe.model import QNet
 
 
 class ReplayBuffer:
@@ -38,7 +38,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-def get_reward(env: TikTakToe, player: str):
+def get_reward(env: TicTacToe, player: str):
     if env.is_winner(player):
         return 1
 
@@ -80,7 +80,7 @@ def backward_pass(q_net, target_net, optimizer, buffer, batch_size, gamma, losse
     optimizer.step()
 
 
-def train_tiktaktoe_dqn(episodes: int, save: bool = False):
+def train_tictactoe_dqn(episodes: int, save: bool = False):
     EPISODES = episodes
     MOVES = 9
     GAMMA = 0.9
@@ -105,7 +105,7 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
 
     target_net.load_state_dict(q_net.state_dict())
 
-    env = TikTakToe()
+    env = TicTacToe()
 
     for ep in range(EPISODES + 1):
         env.reset()
@@ -145,7 +145,7 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
             else:
                 best_action = random.choice(actions)
 
-            env.move(*best_action, agent)
+            env.move(best_action, agent)
 
             if not env.is_game_over():
                 opponent.step()
@@ -188,5 +188,5 @@ def train_tiktaktoe_dqn(episodes: int, save: bool = False):
     plt.show()
     if save:
         _WEIGHTS_DIR.mkdir(exist_ok=True)
-        torch.save(q_net.state_dict(), _WEIGHTS_DIR / 'tiktaktoe_dqn.pth')
+        torch.save(q_net.state_dict(), _WEIGHTS_DIR / 'tictactoe_dqn.pth')
         print('saved weights')

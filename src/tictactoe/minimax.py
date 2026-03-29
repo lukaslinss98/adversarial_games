@@ -23,20 +23,20 @@ def minimax(state, player: str, current: str, depth=0):
     if maximize:
         scores = []
         for move in state.actions():
-            state.move(*move, player=current)
+            state.move(move, player=current)
             score = minimax(state, player, state.get_opponent(current), depth=depth + 1)
             scores.append(score)
-            state.clear(*move)
+            state.clear(move)
 
         return max(scores)
 
     else:
         scores = []
         for move in state.actions():
-            state.move(*move, player=current)
+            state.move(move, player=current)
             score = minimax(state, player, state.get_opponent(current), depth=depth + 1)
             scores.append(score)
-            state.clear(*move)
+            state.clear(move)
 
         return min(scores)
 
@@ -69,7 +69,7 @@ def minimax_alpha_beta(
 
     if maximize:
         for move in state.actions():
-            state.move(*move, player=current)
+            state.move(move, player=current)
             result = minimax_alpha_beta(
                 state,
                 player,
@@ -82,7 +82,7 @@ def minimax_alpha_beta(
             )
             nodes_visited += result.nodes_visited + 1
             alpha = max(alpha, result.score)
-            state.clear(*move)
+            state.clear(move)
             if alpha >= beta and pruning:
                 break
 
@@ -90,7 +90,7 @@ def minimax_alpha_beta(
 
     else:
         for move in state.actions():
-            state.move(*move, player=current)
+            state.move(move, player=current)
             result = minimax_alpha_beta(
                 state,
                 player,
@@ -103,7 +103,7 @@ def minimax_alpha_beta(
             )
             nodes_visited += result.nodes_visited + 1
             beta = min(beta, result.score)
-            state.clear(*move)
+            state.clear(move)
             if alpha >= beta:
                 break
 
