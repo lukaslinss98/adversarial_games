@@ -67,13 +67,11 @@ class MinimaxAgent(Agent):
         minimax_fn: Callable,
         max_depth: int | None = None,
         pruning: bool = True,
-        deterministic: bool = False,
     ):
         super().__init__(env, marker)
         self.minimax_fn = minimax_fn
         self.max_depth = max_depth
         self.pruning = pruning
-        self.deterministic = deterministic
 
     def step(self) -> None:
         env = self.env.copy()
@@ -91,13 +89,7 @@ class MinimaxAgent(Agent):
             env.clear(move)
             self.nodes_visited += result.nodes_visited
 
-        if self.deterministic:
-            move = max(score_by_move, key=lambda m: score_by_move[m])
-
-        max_score = max(score_by_move.values())
-        best_moves = [m for m, s in score_by_move.items() if s == max_score]
-        move = random.choice(best_moves)
-
+        move = max(score_by_move, key=lambda m: score_by_move[m])
         self.env.move(move, self.marker)
 
 

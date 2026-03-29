@@ -33,47 +33,30 @@ def minimax(
 
     maximize = player == current
 
-    if maximize:
-        for move in state.actions():
-            state.move(move, player=current)
-            result = minimax(
-                state,
-                player,
-                state.get_opponent(current),
-                depth + 1,
-                max_depth,
-                alpha,
-                beta,
-                pruning,
-            )
-            nodes_visited += result.nodes_visited + 1
+    for move in state.actions():
+        state.move(move, player=current)
+        result = minimax(
+            state,
+            player,
+            state.get_opponent(current),
+            depth + 1,
+            max_depth,
+            alpha,
+            beta,
+            pruning,
+        )
+        nodes_visited += result.nodes_visited + 1
+        state.clear(move)
+
+        if maximize:
             alpha = max(alpha, result.score)
-            state.clear(move)
-            if alpha >= beta and pruning:
-                break
-
-        return MinimaxResult(alpha, nodes_visited)
-
-    else:
-        for move in state.actions():
-            state.move(move, player=current)
-            result = minimax(
-                state,
-                player,
-                state.get_opponent(current),
-                depth + 1,
-                max_depth,
-                alpha,
-                beta,
-                pruning,
-            )
-            nodes_visited += result.nodes_visited + 1
+        else:
             beta = min(beta, result.score)
-            state.clear(move)
-            if alpha >= beta:
-                break
 
-        return MinimaxResult(beta, nodes_visited)
+        if pruning and alpha >= beta:
+            break
+
+    return MinimaxResult(alpha if maximize else beta, nodes_visited)
 
 
 def non_terminal_score(state, player):
