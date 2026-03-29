@@ -1,4 +1,5 @@
 import random
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 
 import numpy as np
@@ -8,22 +9,23 @@ from torch import nn
 from environment import Environment
 
 
-class RandomAgent:
+class Agent(ABC):
     def __init__(self, env: Environment, marker):
         self.env = env
         self.marker = marker
         self.nodes_visited = 0
 
+    @abstractmethod
+    def step(self): ...
+
+
+class RandomAgent(Agent):
     def step(self) -> None:
-        self.env.move(random.choice(self.env.actions()), self.marker)
+        move = random.choice(self.env.actions())
+        self.env.move(move, self.marker)
 
 
-class DefaultAgent:
-    def __init__(self, env: Environment, marker):
-        self.env = env
-        self.marker = marker
-        self.nodes_visited = 0
-
+class DefaultAgent(Agent):
     def step(self) -> None:
         winning_moves = self.env.winning_moves(self.marker)
         if winning_moves:
@@ -43,12 +45,10 @@ class DefaultAgent:
         self.env.move(move, self.marker)
 
 
-class QLearningAgent:
+class QLearningAgent(Agent):
     def __init__(self, env: Environment, marker, q_table: dict):
-        self.env = env
-        self.marker = marker
+        super().__init__(env, marker)
         self.q_vals = q_table
-        self.nodes_visited = 0
 
     def step(self) -> None:
         state = self.env.state_key()
@@ -59,7 +59,7 @@ class QLearningAgent:
         self.env.move(move, self.marker)
 
 
-class MinimaxAgent:
+class MinimaxAgent(Agent):
     def __init__(
         self,
         env: Environment,
@@ -69,10 +69,8 @@ class MinimaxAgent:
         pruning: bool = True,
         deterministic: bool = False,
     ):
-        self.env = env
-        self.marker = marker
+        super().__init__(env, marker)
         self.minimax_fn = minimax_fn
-        self.nodes_visited = 0
         self.max_depth = max_depth
         self.pruning = pruning
         self.deterministic = deterministic
@@ -103,7 +101,7 @@ class MinimaxAgent:
         self.env.move(move, self.marker)
 
 
-class DQNAgent:
+class DQNAgent(Agent):
     def __init__(
         self,
         env: Environment,
@@ -114,15 +112,13 @@ class DQNAgent:
         output_dims: int,
         action_to_index: Callable | None = None,
     ):
-        self.env = env
-        self.marker = marker
+        super().__init__(env, marker)
         self.device = torch.device(
             'mps' if torch.backends.mps.is_available() else 'cpu'
         )
         self.action_to_index = action_to_index or (lambda a: a)
         self.output_dims = output_dims
         self.net = self._init_net(net, input_dims, output_dims, weights)
-        self.nodes_visited = 0
 
     def step(self) -> None:
         input_vec = self.env.one_hot(self.marker).to(self.device)
