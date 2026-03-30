@@ -1,5 +1,6 @@
 import random
 from collections import deque
+from collections.abc import Callable
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -7,14 +8,11 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch import Tensor
+from torch import Tensor, nn
 from torch.nn.utils import clip_grad_norm_
 
 from agents import DefaultAgent
-from connectfour.environment import ConnectFour, Token
-from connectfour.model import QNet
-
-_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
+from environment import Environment
 
 
 class ReplayBuffer:
@@ -39,13 +37,11 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-def get_reward(env: ConnectFour, player: Token):
+def get_reward(env: Environment, player):
     if env.is_winner(player):
         return 1
-
     if env.is_winner(env.get_opponent(player)):
         return -1
-
     return 0
 
 
@@ -61,7 +57,6 @@ def create_mask(
         for i, actions in enumerate(valid_actions):
             for action in actions:
                 mask[i, action] = 0
-
     return mask
 
 
@@ -95,48 +90,52 @@ def backward_pass(
     optimizer.step()
 
 
-def train_model(episodes: int, save: bool = False):
-    EPISODES = episodes
-    MOVES = 7
-    GAMMA = 0.9
-    INPUT_DIMS = 6 * 7 * 3
-    BUFFER_CAP = 10_000
-    BATCH_SIZE = 32
-    LEARNING_RATE = 0.0001
-    TAU = 0.005
+def train_dqn(
+    env: Environment,
+    markers: list,
+    net_cls: type[nn.Module],
+    input_dims: int,
+    output_dims: int,
+    episodes: int,
+    save_path: Path | None = None,
+    action_to_index: Callable | None = None,
+    gamma: float = 0.9,
+    batch_size: int = 64,
+    buffer_cap: int = 10_000,
+    lr: float = 0.0001,
+    tau: float = 0.005,
+    min_eps: float = 0.01,
+):
+    action_to_index = action_to_index or (lambda a: a)
+    moves = output_dims
 
-    EPSILON = 1.0
-    MIN_EPSILON = 0.01
-    EPSILON_DECAY = (MIN_EPSILON / EPSILON) ** (1 / EPISODES)
+    eps = 1.0
+    eps_decay = (min_eps / eps) ** (1 / episodes)
 
     device = torch.device('cpu')
 
-    q_net = QNet(INPUT_DIMS, MOVES).to(device)
-    target_net = QNet(INPUT_DIMS, MOVES).to(device)
-    buffer = ReplayBuffer(capacity=BUFFER_CAP)
-    losses = []
-
-    optimizer = optim.Adam(q_net.parameters(), LEARNING_RATE)
-
+    q_net = net_cls(input_dims, output_dims).to(device)
+    target_net = net_cls(input_dims, output_dims).to(device)
     target_net.load_state_dict(q_net.state_dict())
 
-    env = ConnectFour()
+    buffer = ReplayBuffer(capacity=buffer_cap)
+    losses = []
+    optimizer = optim.Adam(q_net.parameters(), lr)
 
-    for ep in range(EPISODES):
+    for ep in range(episodes):
         env.reset()
 
-        agent = random.choice([Token.RED, Token.BLUE])
+        agent = random.choice(markers)
         opponent = DefaultAgent(env, marker=env.get_opponent(agent))
+        eps = eps * eps_decay
 
-        if agent == Token.BLUE and not env.is_game_over():
+        if agent == markers[1] and not env.is_game_over():
             opponent.step()
 
-        EPSILON = EPSILON * EPSILON_DECAY
-
         while not env.is_game_over():
-            curr_loss = losses[-1] if len(losses) > 0 else 0
+            curr_loss = losses[-1] if losses else 0
             print(
-                f'\r{ep + 1} / {EPISODES} | Eps={EPSILON:.4f} | loss: {curr_loss:.5f} | {device=}',
+                f'\r{ep + 1} / {episodes} | eps={eps:.4f} | loss: {curr_loss:.5f} | {device=}',
                 end='',
                 flush=True,
             )
@@ -147,13 +146,13 @@ def train_model(episodes: int, save: bool = False):
                 q_values: Tensor = q_net(state).squeeze()
 
             actions = env.actions()
-
-            mask = create_mask(MOVES, actions)
-
+            action_indices = [action_to_index(a) for a in actions]
+            mask = create_mask(moves, action_indices)
             q_values = q_values + mask
 
-            if random.random() > EPSILON:
-                best_action = int(q_values.argmax().item())
+            if random.random() > eps:
+                best_idx = int(q_values.argmax().item())
+                best_action = next(a for a in actions if action_to_index(a) == best_idx)
             else:
                 best_action = random.choice(actions)
 
@@ -164,34 +163,36 @@ def train_model(episodes: int, save: bool = False):
 
             reward = get_reward(env, agent)
             new_state = env.one_hot(agent).to(device)
-            is_over = env.is_game_over()
+            new_action_indices = [action_to_index(a) for a in env.actions()]
 
             buffer.push(
                 state=state,
-                action=best_action,
-                valid_actions=env.actions(),
+                action=action_to_index(best_action),
+                valid_actions=new_action_indices,
                 reward=reward,
                 new_state=new_state,
-                is_over=is_over,
+                is_over=env.is_game_over(),
             )
 
-            if len(buffer) >= BATCH_SIZE:
+            if len(buffer) >= batch_size:
                 backward_pass(
                     q_net=q_net,
                     target_net=target_net,
                     optimizer=optimizer,
                     buffer=buffer,
-                    batch_size=BATCH_SIZE,
-                    gamma=GAMMA,
-                    moves=MOVES,
+                    batch_size=batch_size,
+                    gamma=gamma,
+                    moves=moves,
                     losses=losses,
                 )
                 for target_param, param in zip(
                     target_net.parameters(), q_net.parameters()
                 ):
                     target_param.data.copy_(
-                        TAU * param.data + (1 - TAU) * target_param.data
+                        tau * param.data + (1 - tau) * target_param.data
                     )
+
+    print()
 
     smoothed = pd.Series(losses).rolling(window=100).mean()
     plt.plot(smoothed)
@@ -200,7 +201,8 @@ def train_model(episodes: int, save: bool = False):
     plt.yscale('log')
     plt.title('DQN Training Loss')
     plt.show()
-    if save:
-        _WEIGHTS_DIR.mkdir(exist_ok=True)
-        torch.save(q_net.state_dict(), _WEIGHTS_DIR / 'connectfour_dqn.pth')
-        print('saved weights')
+
+    if save_path:
+        save_path.parent.mkdir(exist_ok=True)
+        torch.save(q_net.state_dict(), save_path)
+        print(f'saved weights to {save_path}')

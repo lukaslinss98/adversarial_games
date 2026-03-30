@@ -2,13 +2,12 @@ import argparse
 from itertools import combinations_with_replacement
 from pathlib import Path
 
-from connectfour.dqn_training import train_model
 from connectfour.evaluate import VALID_AGENTS as CF_AGENTS, evaluate_connectfour
 from connectfour.game import connect_four
-from tictactoe.dqn_training import train_tictactoe_dqn
+from dqn_training import train_dqn
+from q_learning_training import train_ql
 from tictactoe.evaluate import VALID_AGENTS as TTT_AGENTS, evaluate_tictactoe
 from tictactoe.game import tictactoe
-from q_learning_training import train_ql
 
 VALID_GAMES = ('tictactoe', 'connectfour')
 
@@ -84,10 +83,20 @@ if __name__ == '__main__':
     elif args.mode == 'train':
         _WEIGHTS_DIR = Path(__file__).parent.parent / 'weights'
         if args.game == 'tictactoe':
+            from tictactoe.environment import TicTacToe
+            from tictactoe.model import QNet as TTTQNet
             if args.algo == 'dqn':
-                train_tictactoe_dqn(episodes=args.episodes, save=args.save)
+                train_dqn(
+                    env=TicTacToe(),
+                    markers=['X', 'O'],
+                    net_cls=TTTQNet,
+                    input_dims=27,
+                    output_dims=9,
+                    episodes=args.episodes,
+                    save_path=_WEIGHTS_DIR / 'tictactoe_dqn.pth' if args.save else None,
+                    action_to_index=lambda a: a[0] * 3 + a[1],
+                )
             else:
-                from tictactoe.environment import TicTacToe
                 train_ql(
                     env=TicTacToe(),
                     markers=['X', 'O'],
@@ -95,10 +104,19 @@ if __name__ == '__main__':
                     save_path=_WEIGHTS_DIR / 'tictactoe_ql.pkl' if args.save else None,
                 )
         elif args.game == 'connectfour':
+            from connectfour.environment import ConnectFour, Token
+            from connectfour.model import QNet as CFQNet
             if args.algo == 'dqn':
-                train_model(episodes=args.episodes, save=args.save)
+                train_dqn(
+                    env=ConnectFour(),
+                    markers=[Token.RED, Token.BLUE],
+                    net_cls=CFQNet,
+                    input_dims=6 * 7 * 3,
+                    output_dims=7,
+                    episodes=args.episodes,
+                    save_path=_WEIGHTS_DIR / 'connectfour_dqn.pth' if args.save else None,
+                )
             else:
-                from connectfour.environment import ConnectFour, Token
                 train_ql(
                     env=ConnectFour(),
                     markers=[Token.RED, Token.BLUE],

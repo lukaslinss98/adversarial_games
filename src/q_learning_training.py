@@ -30,27 +30,34 @@ def train_ql(
     save_path: Path | None = None,
     lr: float = 0.1,
     gamma: float = 0.9,
-    min_epsilon: float = 0.2,
+    min_eps: float = 0.1,
 ):
-    epsilon = 1.0
-    epsilon_decay = (min_epsilon / epsilon) ** (1 / episodes)
+    eps = 1.0
+    eps_decay = (min_eps / eps) ** (1 / episodes)
     q_vals = {}
 
     for ep in range(episodes + 1):
-        epsilon = epsilon * epsilon_decay
+        eps = eps * eps_decay
         agent = random.choice(markers)
         opponent = DefaultAgent(env, marker=env.get_opponent(agent))
 
-        print(f'\r{ep} / {episodes} | epsilon={epsilon:.4f}', end='', flush=True)
+        print(f'\r{ep} / {episodes} | epsilon={eps:.4f}', end='', flush=True)
 
-        # If agent goes second, let opponent move first
         if agent == markers[1] and not env.is_game_over():
             opponent.step()
 
         while not env.is_game_over():
             state = env.state_key()
             actions = env.actions()
-            action = get_action(state, actions, q_vals, epsilon)
+
+            if random.random() > eps:
+                argmax = np.argmax(
+                    [q_vals.get((state, action), 0) for action in actions]
+                )
+                action = actions[argmax]
+            else:
+                action = random.choice(actions)
+
             current_q = q_vals.get((state, action), 0)
 
             env.move(action, agent)
