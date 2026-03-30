@@ -2,24 +2,17 @@ import pickle
 import random
 from pathlib import Path
 
-_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
-
 import numpy as np
 
 from agents import DefaultAgent
-from tictactoe.environment import TicTacToe
+from environment import Environment
 
 
-def get_reward(env: TicTacToe, player: str):
+def get_reward(env: Environment, player):
     if env.is_winner(player):
         return 1
-
     if env.is_winner(env.get_opponent(player)):
         return -1
-
-    if env.is_draw():
-        return 0
-
     return 0
 
 
@@ -27,37 +20,37 @@ def get_action(state, actions, q_vals, eps):
     if random.random() > eps:
         argmax = np.argmax([q_vals.get((state, action), 0) for action in actions])
         return actions[argmax]
-
     return random.choice(actions)
 
 
-def train_tictactoe(episodes: int, save: bool = False):
-    EPISODES = episodes
-    LR = 0.1
-    GAMMA = 0.9
-    EPSILON = 1.0
-    MIN_EPSILON = 0.2
-    EPSILON_DECAY = 0.9999
-
-    env = TicTacToe()
+def train_ql(
+    env: Environment,
+    markers: list,
+    episodes: int,
+    save_path: Path | None = None,
+    lr: float = 0.1,
+    gamma: float = 0.9,
+    min_epsilon: float = 0.2,
+):
+    epsilon = 1.0
+    epsilon_decay = (min_epsilon / epsilon) ** (1 / episodes)
     q_vals = {}
 
-    makers = ['X', 'O']
-    for ep in range(EPISODES + 1):
-        EPSILON = max(MIN_EPSILON, EPSILON * EPSILON_DECAY)
-        agent_marker = random.choice(makers)
-        agent = agent_marker
-        opponent = DefaultAgent(env, marker=env.get_opponent(agent_marker))
+    for ep in range(episodes + 1):
+        epsilon = epsilon * epsilon_decay
+        agent = random.choice(markers)
+        opponent = DefaultAgent(env, marker=env.get_opponent(agent))
 
-        print(f'\r{ep} / {EPISODES} | {EPSILON=}', end='', flush=True)
+        print(f'\r{ep} / {episodes} | epsilon={epsilon:.4f}', end='', flush=True)
 
-        if agent == 'O' and not env.is_game_over():
+        # If agent goes second, let opponent move first
+        if agent == markers[1] and not env.is_game_over():
             opponent.step()
 
         while not env.is_game_over():
             state = env.state_key()
             actions = env.actions()
-            action = get_action(state, actions, q_vals, EPSILON)
+            action = get_action(state, actions, q_vals, epsilon)
             current_q = q_vals.get((state, action), 0)
 
             env.move(action, agent)
@@ -73,15 +66,15 @@ def train_tictactoe(episodes: int, save: bool = False):
                 default=0,
             )
 
-            current_q = current_q + LR * (reward + GAMMA * next_max_q - current_q)
+            current_q = current_q + lr * (reward + gamma * next_max_q - current_q)
             q_vals[(state, action)] = current_q
 
         env.reset()
 
     print()
-    print(len(q_vals))
+    print(f'{len(q_vals)} states')
 
-    if save:
-        _WEIGHTS_DIR.mkdir(exist_ok=True)
-        with open(_WEIGHTS_DIR / 'tictactoe_ql.pkl', 'wb') as f:
+    if save_path:
+        save_path.parent.mkdir(exist_ok=True)
+        with open(save_path, 'wb') as f:
             pickle.dump(q_vals, f)

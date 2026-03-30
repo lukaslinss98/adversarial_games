@@ -1,5 +1,6 @@
 import argparse
 from itertools import combinations_with_replacement
+from pathlib import Path
 
 from connectfour.dqn_training import train_model
 from connectfour.evaluate import VALID_AGENTS as CF_AGENTS, evaluate_connectfour
@@ -7,7 +8,7 @@ from connectfour.game import connect_four
 from tictactoe.dqn_training import train_tictactoe_dqn
 from tictactoe.evaluate import VALID_AGENTS as TTT_AGENTS, evaluate_tictactoe
 from tictactoe.game import tictactoe
-from tictactoe.q_learning_training import train_tictactoe
+from q_learning_training import train_ql
 
 VALID_GAMES = ('tictactoe', 'connectfour')
 
@@ -81,16 +82,29 @@ if __name__ == '__main__':
         elif args.game == 'connectfour':
             connect_four()
     elif args.mode == 'train':
+        _WEIGHTS_DIR = Path(__file__).parent.parent / 'weights'
         if args.game == 'tictactoe':
             if args.algo == 'dqn':
                 train_tictactoe_dqn(episodes=args.episodes, save=args.save)
             else:
-                train_tictactoe(episodes=args.episodes, save=args.save)
-        if args.game == 'connectfour':
+                from tictactoe.environment import TicTacToe
+                train_ql(
+                    env=TicTacToe(),
+                    markers=['X', 'O'],
+                    episodes=args.episodes,
+                    save_path=_WEIGHTS_DIR / 'tictactoe_ql.pkl' if args.save else None,
+                )
+        elif args.game == 'connectfour':
             if args.algo == 'dqn':
                 train_model(episodes=args.episodes, save=args.save)
             else:
-                train_model(episodes=args.episodes, save=args.save)
+                from connectfour.environment import ConnectFour, Token
+                train_ql(
+                    env=ConnectFour(),
+                    markers=[Token.RED, Token.BLUE],
+                    episodes=args.episodes,
+                    save_path=_WEIGHTS_DIR / 'connectfour_ql.pkl' if args.save else None,
+                )
     elif args.mode == 'eval':
         if getattr(args, 'all', False):
             agents = TTT_AGENTS if args.game == 'tictactoe' else CF_AGENTS

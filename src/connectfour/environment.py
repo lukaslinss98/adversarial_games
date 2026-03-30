@@ -59,7 +59,11 @@ class ConnectFour(Environment):
         return False
 
     def is_draw(self) -> bool:
-        return len(self.actions()) == 0
+        return (
+            not self.actions()
+            and not self.is_winner(Token.RED)
+            and not self.is_winner(Token.BLUE)
+        )
 
     def is_game_over(self) -> bool:
         return self.is_winner(Token.RED) or self.is_winner(Token.BLUE) or self.is_draw()
