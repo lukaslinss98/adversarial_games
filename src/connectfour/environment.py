@@ -110,8 +110,6 @@ class ConnectFour(Environment):
         self.state = [[None] * COLUMNS for _ in range(MAX_CAP)]
         self.current_player = Token.RED
 
-    # Game-specific methods
-
     def _get_cell(self, row: int, col: int) -> Token | None:
         if row < 0 or row >= MAX_CAP or col < 0 or col >= COLUMNS:
             return None

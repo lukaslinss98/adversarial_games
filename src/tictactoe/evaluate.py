@@ -28,7 +28,7 @@ def _load_dqn_weights(agent1: str, agent2: str):
     return torch.load(_WEIGHTS_DIR / 'tictactoe_dqn.pth', weights_only=True)
 
 
-def _make_agent(name: str, env, marker: str, q_table: dict | None, dqn_weights):
+def create_agent(name: str, env, marker: str, q_table: dict | None, dqn_weights):
     match name:
         case 'minimax':
             return MinimaxAgent(
@@ -70,8 +70,8 @@ def evaluate_tictactoe(runs: int, agent1_type: str, agent2_type: str) -> None:
             else (_MARKERS[1], _MARKERS[0])
         )
         agent_map = {
-            a1m: _make_agent(agent1_type, env, a1m, q_table, dqn_weights),
-            a2m: _make_agent(agent2_type, env, a2m, q_table, dqn_weights),
+            a1m: create_agent(agent1_type, env, a1m, q_table, dqn_weights),
+            a2m: create_agent(agent2_type, env, a2m, q_table, dqn_weights),
         }
 
         while not env.is_game_over():

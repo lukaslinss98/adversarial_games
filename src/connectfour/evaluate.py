@@ -25,7 +25,7 @@ def _load_q_table(agent1: str, agent2: str) -> dict | None:
 def _load_dqn_weights(agent1: str, agent2: str):
     if 'dqn' not in (agent1, agent2):
         return None
-    return torch.load(_WEIGHTS_DIR / 'connectfour_dqn.pth', weights_only=True)
+    return torch.load(_WEIGHTS_DIR / 'connectfour_dqn_v2.pth', weights_only=True)
 
 
 def _make_agent(name: str, env, marker: Token, q_table: dict | None, dqn_weights):

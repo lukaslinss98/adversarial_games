@@ -97,12 +97,13 @@ def train_dqn(
     input_dims: int,
     output_dims: int,
     episodes: int,
+    game_name: str = '',
     save_path: Path | None = None,
     action_to_index: Callable | None = None,
     gamma: float = 0.9,
-    batch_size: int = 64,
+    batch_size: int = 128,
     buffer_cap: int = 10_000,
-    lr: float = 0.0001,
+    lr: float = 0.00001,
     tau: float = 0.005,
     min_eps: float = 0.01,
 ):
@@ -199,7 +200,7 @@ def train_dqn(
     plt.xlabel('Update step')
     plt.ylabel('MSE Loss')
     plt.yscale('log')
-    plt.title('DQN Training Loss')
+    plt.title(f'DQN Training Loss — {game_name} ({episodes} episodes)')
     plt.show()
 
     if save_path:

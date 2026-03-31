@@ -6,11 +6,11 @@ class QNet(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(input_dims, 128),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(128, 256),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(256, 256),
-            nn.LeakyReLU(),
+            nn.ReLU(),
             nn.Linear(256, output_dims),
         )
 

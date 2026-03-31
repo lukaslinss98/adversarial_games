@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 
-from agents import DQNAgent, MinimaxAgent
+from agents import DefaultAgent, DQNAgent, MinimaxAgent
 from connectfour.environment import ConnectFour, Token
 from connectfour.minimax import minimax
 from connectfour.model import QNet
@@ -20,7 +20,7 @@ def connect_four():
     )
     pygame.display.set_caption('Connect Four')
 
-    weights = torch.load(_WEIGHTS_DIR / 'connectfour_dqn.pth', weights_only=True)
+    weights = torch.load(_WEIGHTS_DIR / 'connectfour_dqn_v2.pth', weights_only=True)
 
     game = ConnectFour()
     agents = {
@@ -33,10 +33,7 @@ def connect_four():
             output_dims=7,
         ),
         Token.BLUE: MinimaxAgent(
-            game,
-            marker=Token.BLUE,
-            minimax_fn=minimax,
-            max_depth=5,
+            game, marker=Token.BLUE, minimax_fn=minimax, max_depth=5, pruning=True
         ),
     }
     winner: Token | None = None
