@@ -1,4 +1,5 @@
 import random
+import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
@@ -13,20 +14,26 @@ class Agent(ABC):
     def __init__(self, env: Environment, marker):
         self.env = env
         self.marker = marker
-        self.nodes_visited = 0
+        self.nodes_visited = []
+        self.decision_times: list[float] = []
+
+    def step(self) -> None:
+        t_start = time.perf_counter()
+        self._step()
+        self.decision_times.append(time.perf_counter() - t_start)
 
     @abstractmethod
-    def step(self): ...
+    def _step(self) -> None: ...
 
 
 class RandomAgent(Agent):
-    def step(self) -> None:
+    def _step(self) -> None:
         move = random.choice(self.env.actions())
         self.env.move(move, self.marker)
 
 
 class DefaultAgent(Agent):
-    def step(self) -> None:
+    def _step(self) -> None:
         winning_moves = self.env.winning_moves(self.marker)
         if winning_moves:
             move = random.choice(winning_moves)
@@ -50,12 +57,11 @@ class QLearningAgent(Agent):
         super().__init__(env, marker)
         self.q_vals = q_table
 
-    def step(self) -> None:
+    def _step(self) -> None:
         state = self.env.state_key()
         actions = self.env.actions()
         max_arg = np.argmax([self.q_vals.get((state, action), 0) for action in actions])
         move = actions[max_arg]
-
         self.env.move(move, self.marker)
 
 
@@ -72,8 +78,10 @@ class MinimaxAgent(Agent):
         self.minimax_fn = minimax_fn
         self.max_depth = max_depth
         self.pruning = pruning
+        self.alpha = float('-inf')
+        self.beta = float('inf')
 
-    def step(self) -> None:
+    def _step(self) -> None:
         env = self.env.copy()
         score_by_move = {}
         for move in self.env.actions():
@@ -83,11 +91,13 @@ class MinimaxAgent(Agent):
                 player=self.marker,
                 current=env.get_opponent(self.marker),
                 max_depth=self.max_depth,
+                alpha=self.alpha,
+                beta=self.beta,
                 pruning=self.pruning,
             )
             score_by_move[move] = result.score
             env.clear(move)
-            self.nodes_visited += result.nodes_visited
+            self.nodes_visited.append(result.nodes_visited)
 
         move = max(score_by_move, key=lambda m: score_by_move[m])
         self.env.move(move, self.marker)
@@ -112,7 +122,7 @@ class DQNAgent(Agent):
         self.output_dims = output_dims
         self.net = self._init_net(net, input_dims, output_dims, weights)
 
-    def step(self) -> None:
+    def _step(self) -> None:
         input_vec = self.env.one_hot(self.marker).to(self.device)
         with torch.no_grad():
             q_vals = self.net(input_vec)

@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch import Tensor, nn
 from torch.nn.utils import clip_grad_norm_
 
-from agents import DefaultAgent
+from agents import DefaultAgent, MinimaxAgent
 from environment import Environment
 
 
@@ -90,6 +90,49 @@ def backward_pass(
     optimizer.step()
 
 
+def eval_agent(
+    q_net: nn.Module,
+    env: Environment,
+    markers: list,
+    action_to_index: Callable,
+    moves: int,
+    games: int = 100,
+) -> tuple[float, float, float]:
+    device = next(q_net.parameters()).device
+    wins = draws = opponent_wins = 0
+    q_net.eval()
+    with torch.no_grad():
+        for _ in range(games):
+            env.reset()
+            agent = random.choice(markers)
+            opponent = DefaultAgent(env, marker=env.get_opponent(agent))
+
+            if agent == markers[1] and not env.is_game_over():
+                opponent.step()
+
+            while not env.is_game_over():
+                state = env.one_hot(agent).to(device)
+                q_values = q_net(state).squeeze()
+                actions = env.actions()
+                action_indices = [action_to_index(a) for a in actions]
+                mask = create_mask(moves, action_indices)
+                q_values = q_values + mask.to(device)
+                best_idx = int(q_values.argmax().item())
+                best_action = next(a for a in actions if action_to_index(a) == best_idx)
+                env.move(best_action, agent)
+                if not env.is_game_over():
+                    opponent.step()
+
+            if env.is_winner(agent):
+                wins += 1
+            elif env.is_draw():
+                draws += 1
+            else:
+                opponent_wins += 1
+    q_net.train()
+    return wins / games, draws / games, opponent_wins / games
+
+
 def train_dqn(
     env: Environment,
     markers: list,
@@ -106,6 +149,8 @@ def train_dqn(
     lr: float = 0.00001,
     tau: float = 0.005,
     min_eps: float = 0.01,
+    eval_interval: int = 100,
+    eval_games: int = 100,
 ):
     action_to_index = action_to_index or (lambda a: a)
     moves = output_dims
@@ -121,6 +166,7 @@ def train_dqn(
 
     buffer = ReplayBuffer(capacity=buffer_cap)
     losses = []
+    win_rates: list[tuple[int, float, float, float]] = []
     optimizer = optim.Adam(q_net.parameters(), lr)
 
     for ep in range(episodes):
@@ -193,6 +239,12 @@ def train_dqn(
                         tau * param.data + (1 - tau) * target_param.data
                     )
 
+        if (ep + 1) % eval_interval == 0:
+            win_rate, draw_rate, loss_rate = eval_agent(
+                q_net, env, markers, action_to_index, moves, eval_games
+            )
+            win_rates.append((ep + 1, win_rate, draw_rate, loss_rate))
+
     print()
 
     smoothed = pd.Series(losses).rolling(window=100).mean()
@@ -201,7 +253,23 @@ def train_dqn(
     plt.ylabel('MSE Loss')
     plt.yscale('log')
     plt.title(f'DQN Training Loss — {game_name} ({episodes} episodes)')
+    plt.tight_layout()
     plt.show()
+
+    if win_rates:
+        eps_nums, win_r, draw_r, loss_r = zip(*win_rates)
+        plt.plot(eps_nums, win_r, marker='o', markersize=3, label='win')
+        plt.plot(eps_nums, draw_r, marker='o', markersize=3, label='draw')
+        plt.plot(eps_nums, loss_r, marker='o', markersize=3, label='loss')
+        plt.xlabel('Episode')
+        plt.ylabel('Rate')
+        plt.ylim(0, 1)
+        plt.legend()
+        plt.title(
+            f'Results vs DefaultAgent (every {eval_interval} eps, {eval_games} games)'
+        )
+        plt.tight_layout()
+        plt.show()
 
     if save_path:
         save_path.parent.mkdir(exist_ok=True)

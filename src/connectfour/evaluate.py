@@ -1,5 +1,4 @@
 import pickle
-import random
 from pathlib import Path
 
 import torch
@@ -7,10 +6,12 @@ import torch
 from agents import (DefaultAgent, DQNAgent, MinimaxAgent, QLearningAgent,
                     RandomAgent)
 from connectfour.environment import ConnectFour, Token
-from connectfour.minimax import minimax
 from connectfour.model import QNet
+from minimax import minimax
 
 VALID_AGENTS = ('minimax', 'ql', 'dqn', 'default', 'random')
+
+
 _MARKERS = (Token.RED, Token.BLUE)
 _WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
 
@@ -28,11 +29,23 @@ def _load_dqn_weights(agent1: str, agent2: str):
     return torch.load(_WEIGHTS_DIR / 'connectfour_dqn_v2.pth', weights_only=True)
 
 
-def _make_agent(name: str, env, marker: Token, q_table: dict | None, dqn_weights):
+def _make_agent(
+    name: str,
+    env,
+    marker: Token,
+    q_table: dict | None,
+    dqn_weights,
+    minimax_depth=5,
+    pruning=True,
+):
     match name:
         case 'minimax':
             return MinimaxAgent(
-                env, marker, minimax_fn=minimax, max_depth=5, pruning=True
+                env,
+                marker,
+                minimax_fn=minimax,
+                max_depth=minimax_depth,
+                pruning=pruning,
             )
         case 'ql':
             return QLearningAgent(env, marker, q_table)
@@ -53,24 +66,31 @@ def _make_agent(name: str, env, marker: Token, q_table: dict | None, dqn_weights
             raise ValueError(f'Unknown agent "{name}". Valid: {VALID_AGENTS}')
 
 
-def evaluate_connectfour(runs: int, agent1_type: str, agent2_type: str) -> None:
+def evaluate_connectfour(
+    runs: int, agent1_type: str, agent2_type: str, minimax_depth=5, pruning=True
+) -> None:
     env = ConnectFour()
     q_table = _load_q_table(agent1_type, agent2_type)
     dqn_weights = _load_dqn_weights(agent1_type, agent2_type)
 
     agent1_wins = agent2_wins = draws = 0
+    agent1_nodes: list[int] = []
+    agent2_nodes: list[int] = []
+    agent1_times: list[float] = []
+    agent2_times: list[float] = []
 
+    a1m, a2m = _MARKERS[0], _MARKERS[1]
     for i in range(runs):
         print(f'\rGame {i + 1}/{runs}', end='', flush=True)
         env.reset()
-        a1m, a2m = (
-            (_MARKERS[0], _MARKERS[1])
-            if random.random() < 0.5
-            else (_MARKERS[1], _MARKERS[0])
-        )
+        a1m, a2m = a2m, a1m
         agent_map = {
-            a1m: _make_agent(agent1_type, env, a1m, q_table, dqn_weights),
-            a2m: _make_agent(agent2_type, env, a2m, q_table, dqn_weights),
+            a1m: _make_agent(
+                agent1_type, env, a1m, q_table, dqn_weights, minimax_depth, pruning
+            ),
+            a2m: _make_agent(
+                agent2_type, env, a2m, q_table, dqn_weights, minimax_depth, pruning
+            ),
         }
 
         while not env.is_game_over():
@@ -83,9 +103,27 @@ def evaluate_connectfour(runs: int, agent1_type: str, agent2_type: str) -> None:
         else:
             agent2_wins += 1
 
+        agent1_nodes.extend(agent_map[a1m].nodes_visited)
+        agent2_nodes.extend(agent_map[a2m].nodes_visited)
+        agent1_times.extend(agent_map[a1m].decision_times)
+        agent2_times.extend(agent_map[a2m].decision_times)
+
     print()
     total = agent1_wins + agent2_wins + draws
     print(f'Results over {total} games:')
     print(f'  {agent1_type:<10} {agent1_wins:>5}  ({agent1_wins / total:.1%})')
     print(f'  {agent2_type:<10} {agent2_wins:>5}  ({agent2_wins / total:.1%})')
     print(f'  {"draws":<10} {draws:>5}  ({draws / total:.1%})')
+
+    for name, nodes, times in (
+        (agent1_type, agent1_nodes, agent1_times),
+        (agent2_type, agent2_nodes, agent2_times),
+    ):
+        if nodes:
+            mean_nodes = sum(nodes) / len(nodes)
+            print(f'  {name} nodes — mean/move: {mean_nodes:.1f}, total: {sum(nodes)}')
+        if times:
+            mean_ms = sum(times) / len(times) * 1000
+            print(
+                f'  {name} time  — mean/move: {mean_ms:.2f}ms, total: {sum(times):.2f}s'
+            )

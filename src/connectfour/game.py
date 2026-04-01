@@ -1,17 +1,9 @@
-from pathlib import Path
-
-import torch
-
-from agents import DefaultAgent, DQNAgent, MinimaxAgent
 from connectfour.environment import ConnectFour, Token
-from connectfour.minimax import minimax
-from connectfour.model import QNet
-
-_WEIGHTS_DIR = Path(__file__).parent.parent.parent / 'weights'
+from connectfour.evaluate import _load_dqn_weights, _load_q_table, _make_agent
 from util import BLACK, BORDER, GREEN, PANEL_WIDTH, WHITE, WINDOW_SIZE
 
 
-def connect_four():
+def connect_four(agent1_type: str = 'dqn', agent2_type: str = 'minimax', move_delay: int = 300, minimax_depth=5, pruning=True):
     import pygame
 
     pygame.init()
@@ -20,26 +12,16 @@ def connect_four():
     )
     pygame.display.set_caption('Connect Four')
 
-    weights = torch.load(_WEIGHTS_DIR / 'connectfour_dqn_v2.pth', weights_only=True)
-
     game = ConnectFour()
+    q_table = _load_q_table(agent1_type, agent2_type)
+    dqn_weights = _load_dqn_weights(agent1_type, agent2_type)
     agents = {
-        Token.RED: DQNAgent(
-            game,
-            marker=Token.RED,
-            weights=weights,
-            net=QNet,
-            input_dims=6 * 7 * 3,
-            output_dims=7,
-        ),
-        Token.BLUE: MinimaxAgent(
-            game, marker=Token.BLUE, minimax_fn=minimax, max_depth=5, pruning=True
-        ),
+        Token.RED: _make_agent(agent1_type, game, Token.RED, q_table, dqn_weights, minimax_depth, pruning),
+        Token.BLUE: _make_agent(agent2_type, game, Token.BLUE, q_table, dqn_weights, minimax_depth, pruning),
     }
     winner: Token | None = None
     draw = False
     running = True
-    move_delay = 300
     game_over_printed = False
 
     while running:
@@ -55,7 +37,9 @@ def connect_four():
             screen, WHITE, (panel_x, 0), (panel_x, WINDOW_SIZE + BORDER * 2), 1
         )
         panel_font = pygame.font.SysFont('courier', 18)
-        total = sum(a.nodes_visited for a in agents.values())
+        red_nodes = sum(agents[Token.RED].nodes_visited)
+        blue_nodes = sum(agents[Token.BLUE].nodes_visited)
+        total = red_nodes + blue_nodes
         status = (
             f'Winner: {winner}'
             if winner
@@ -66,8 +50,8 @@ def connect_four():
             '',
             status,
             '',
-            f'red:   {agents[Token.RED].nodes_visited:,}',
-            f'blue:  {agents[Token.BLUE].nodes_visited:,}',
+            f'red ({agent1_type}): {red_nodes:,}',
+            f'blue ({agent2_type}): {blue_nodes:,}',
             f'Total: {total:,}',
         ]
         for i, line in enumerate(panel_lines):
@@ -85,7 +69,7 @@ def connect_four():
                 draw = True
 
         if (winner or draw) and not game_over_printed:
-            print(f'States explored: {sum(a.nodes_visited for a in agents.values()):,}')
+            print(f'States explored: {sum(sum(a.nodes_visited) for a in agents.values()):,}')
             game_over_printed = True
 
         pygame.display.flip()
