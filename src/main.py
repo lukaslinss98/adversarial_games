@@ -27,19 +27,29 @@ if __name__ == '__main__':
         help=f'Game to play. Valid options: {", ".join(VALID_GAMES)}',
     )
     play_parser.add_argument(
-        '--agent1', type=str, default='dqn', choices=TTT_AGENTS,
+        '--agent1',
+        type=str,
+        default='dqn',
+        choices=TTT_AGENTS,
         help='Agent 1 type (default: dqn)',
     )
     play_parser.add_argument(
-        '--agent2', type=str, default='minimax', choices=TTT_AGENTS,
+        '--agent2',
+        type=str,
+        default='minimax',
+        choices=TTT_AGENTS,
         help='Agent 2 type (default: minimax)',
     )
     play_parser.add_argument(
-        '--move-delay', type=int, default=None,
-        help='Milliseconds between moves (default: 1000 tictactoe, 300 connectfour)',
+        '--move-delay',
+        type=int,
+        default=200,
+        help='Milliseconds between moves (default: 200)',
     )
     play_parser.add_argument(
-        '--minimax-depth', type=int, default=None,
+        '--minimax-depth',
+        type=int,
+        default=None,
         help='Minimax search depth (default: unlimited tictactoe, 5 connectfour)',
     )
     play_parser.add_argument(
@@ -76,35 +86,51 @@ if __name__ == '__main__':
         help='Training algorithm: ql or dqn (default: ql)',
     )
     train_parser.add_argument(
-        '--lr', type=float, default=None,
+        '--lr',
+        type=float,
+        default=None,
         help='Learning rate (default: 0.1 ql, 0.00001 dqn)',
     )
     train_parser.add_argument(
-        '--gamma', type=float, default=None,
+        '--gamma',
+        type=float,
+        default=None,
         help='Discount factor (default: 0.9)',
     )
     train_parser.add_argument(
-        '--min-eps', type=float, default=None,
+        '--min-eps',
+        type=float,
+        default=None,
         help='Minimum epsilon for exploration (default: 0.15 ql, 0.01 dqn)',
     )
     train_parser.add_argument(
-        '--batch-size', type=int, default=None,
+        '--batch-size',
+        type=int,
+        default=None,
         help='Batch size, DQN only (default: 128)',
     )
     train_parser.add_argument(
-        '--buffer-cap', type=int, default=None,
+        '--buffer-cap',
+        type=int,
+        default=None,
         help='Replay buffer capacity, DQN only (default: 10000)',
     )
     train_parser.add_argument(
-        '--tau', type=float, default=None,
+        '--tau',
+        type=float,
+        default=None,
         help='Soft update rate, DQN only (default: 0.005)',
     )
     train_parser.add_argument(
-        '--eval-interval', type=int, default=None,
+        '--eval-interval',
+        type=int,
+        default=None,
         help='Episodes between evaluations (default: 500 ql, 100 dqn)',
     )
     train_parser.add_argument(
-        '--eval-games', type=int, default=None,
+        '--eval-games',
+        type=int,
+        default=None,
         help='Games per evaluation (default: 100)',
     )
 
@@ -129,7 +155,9 @@ if __name__ == '__main__':
         '--all', action='store_true', help='Test all agent combinations'
     )
     eval_parser.add_argument(
-        '--minimax-depth', type=int, default=None,
+        '--minimax-depth',
+        type=int,
+        default=None,
         help='Minimax search depth (default: unlimited tictactoe, 5 connectfour)',
     )
     eval_parser.add_argument(
@@ -152,18 +180,26 @@ if __name__ == '__main__':
         elif args.game == 'connectfour':
             connect_four(args.agent1, args.agent2, **play_kwargs)
     elif args.mode == 'train':
-        train_kwargs = {k: v for k, v in {
-            'lr': args.lr,
-            'gamma': args.gamma,
-            'min_eps': args.min_eps,
-            'eval_interval': args.eval_interval,
-            'eval_games': args.eval_games,
-        }.items() if v is not None}
-        dqn_kwargs = {k: v for k, v in {
-            'batch_size': args.batch_size,
-            'buffer_cap': args.buffer_cap,
-            'tau': args.tau,
-        }.items() if v is not None}
+        train_kwargs = {
+            k: v
+            for k, v in {
+                'lr': args.lr,
+                'gamma': args.gamma,
+                'min_eps': args.min_eps,
+                'eval_interval': args.eval_interval,
+                'eval_games': args.eval_games,
+            }.items()
+            if v is not None
+        }
+        dqn_kwargs = {
+            k: v
+            for k, v in {
+                'batch_size': args.batch_size,
+                'buffer_cap': args.buffer_cap,
+                'tau': args.tau,
+            }.items()
+            if v is not None
+        }
 
         _WEIGHTS_DIR = Path(__file__).parent.parent / 'weights'
         if args.game == 'tictactoe':
